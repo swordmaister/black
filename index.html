@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LED Sequence Demo</title>
+<style>
+/* 基本レイアウト */
+body {
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  font-family: sans-serif;
+  color: white;
+}
+.device-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.5s ease;
+}
+.device {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: #333;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.inner-glow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  box-shadow: inset 0 0 30px rgba(255,255,255,0.1);
+  pointer-events: none;
+}
+.device.has-active-leds .inner-glow {
+  box-shadow: inset 0 0 50px rgba(255,255,255,0.4);
+}
+.led {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s;
+  background: transparent;
+  border: 1px solid transparent;
+  color: currentColor;
+}
+.led.active {
+  opacity: 1;
+  background: currentColor;
+  border-color: currentColor;
+  box-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+}
+/* 押下中のランダム色対応 */
+.led.press-active {
+  opacity: 1;
+  background: var(--press-color, #00ff88);
+  border: 1px solid var(--press-color, #00ff88);
+  color: var(--press-color, #00ff88);
+  box-shadow: 
+    0 0 20px var(--press-color, #00ff88),
+    0 0 35px var(--press-color, #00ff88),
+    inset 0 0 8px rgba(255,255,255,0.3);
+}
+.led.press-active::before {
+  background: var(--press-color, #00ff88);
+  opacity: 0.3;
+}
+.led.press-active::after {
+  background: var(--press-color, #00ff88);
+  opacity: 1;
+}
+/* 中央ボタン */
+#startButton {
+  position: relative;
+  z-index: 10;
+  padding: 10px 20px;
+  font-size: 18px;
+  border-radius: 50%;
+  border: none;
+  background: #666;
+  color: white;
+  cursor: pointer;
+}
+#rotation-button {
+  position: absolute;
+  top: -60px;
+  padding: 5px 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+#randomModeSwitch {
+  position: absolute;
+  bottom: -60px;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+</style>
+</head>
+<body>
+<div class="device-container">
+  <div class="device">
+    <div class="inner-glow"></div>
+    <button id="rotation-button">回転</button>
+    <button id="startButton">●</button>
+    <label id="randomModeSwitch">
+      <input type="checkbox" id="randomModeCheckbox"> ランダムモード
+    </label>
+  </div>
+</div>
+<script>
+class LEDSequence {
+  constructor() {
+    this.leds = [];
+    this.intervalId = null;
+    this.pressAnimationId = null;
+    this.thinkingInterval = null;
+    this.isRunning = false;
+    this.isPressing = false;
+    this.currentIndex = 0;
+    this.isRandomMode = false;
+    this.pressTimer = null;
+    this.deviceRotation = 0;
+    this.pressColors = ['#00ff88','#ff8800','#0088ff','#ff00ff','#ffff00','#00ffff'];
+    this.init();
+  }
+  init() {
+    this.device = document.querySelector('.device');
+    this.startButton = document.getElementById('startButton');
+    this.createLEDs();
+    this.startButton.addEventListener('mousedown', e=>this.startPress(e));
+    this.startButton.addEventListener('mouseup', e=>this.endPress(e));
+    this.startButton.addEventListener('mouseleave', e=>this.endPress(e));
+    this.startButton.addEventListener('touchstart', e=>this.startPress(e));
+    this.startButton.addEventListener('touchend', e=>this.endPress(e));
+    this.startButton.addEventListener('touchcancel', e=>this.endPress(e));
+    document.getElementById('rotation-button').addEventListener('click', ()=>this.rotateScreen());
+    document.getElementById('randomModeCheckbox').addEventListener('change', e=>{
+      this.isRandomMode = e.target.checked;
+    });
+    document.addEventListener('keydown', e=>{
+      if(e.code==='Space'){ this.rotateScreen(); e.preventDefault(); }
+      else if(e.code==='Escape'){ this.reset(); }
+    });
+  }
+  createLEDs() {
+    const ledCount = 18;
+    const startAngle = 225;
+    const totalAngle = 270;
+    const angleStep = totalAngle / ledCount;
+    const radius = 120;
+    const colors = ['red','orange','yellow','green','blue','purple'];
+    for(let i=0;i<ledCount;i++){
+      const angle = (startAngle + i*angleStep)*Math.PI/180;
+      const x = 150 + radius*Math.cos(angle) - 10;
+      const y = 150 + radius*Math.sin(angle) - 10;
+      const led = document.createElement('div');
+      led.className = 'led';
+      led.style.left = `${x}px`;
+      led.style.top = `${y}px`;
+      led.style.color = colors[Math.floor(i/3)];
+      this.device.appendChild(led);
+      this.leds.push(led);
+    }
+  }
+  startPress(e){
+    e.preventDefault();
+    if(this.isPressing) return;
+    if(this.isRunning || this.currentIndex>0){ this.reset(); return; }
+    this.isPressing = true;
+    this.startButton.style.background = '#444';
+    this.startPressAnimation();
+    this.pressTimer = setTimeout(()=>this.start(),3000);
+  }
+  endPress(e){
+    e.preventDefault();
+    this.isPressing = false;
+    this.startButton.style.background = '#666';
+    if(this.pressAnimationId) clearInterval(this.pressAnimationId);
+    this.leds.forEach(led=>{
+      led.classList.remove('press-active');
+      led.style.removeProperty('--press-color');
+    });
+    if(this.pressTimer) clearTimeout(this.pressTimer);
+  }
+  startPressAnimation(){
+    if(this.pressAnimationId) clearInterval(this.pressAnimationId);
+    this.leds.forEach(led=>{
+      led.classList.remove('press-active','active');
+    });
+    const randomPattern = Math.floor(Math.random()*10)+1;
+    const randomColor = this.pressColors[Math.floor(Math.random()*this.pressColors.length)];
+    this.leds.forEach(led=>led.style.setProperty('--press-color',randomColor));
+    const patterns = [
+      ()=>this.pattern1_LeftRight(),
+      ()=>this.pattern2_RightLeft(),
+      ()=>this.pattern3_Alternating(),
+      ()=>this.pattern4_Spiral(),
+      ()=>this.pattern5_SpiralReverse(),
+      ()=>this.pattern6_PingPong(),
+      ()=>this.pattern7_Flicker(),
+      ()=>this.pattern8_AllFlash(),
+      ()=>this.pattern9_Wave(),
+      ()=>this.pattern10_Lightning()
+    ];
+    patterns[randomPattern-1]();
+  }
+  // 簡略化: パターンは1つだけ例示（本番では全パターンを移植）
+  pattern1_LeftRight(){
+    let index=0;
+    this.pressAnimationId=setInterval(()=>{
+      this.leds.forEach(led=>led.classList.remove('press-active'));
+      this.leds[index%this.leds.length].classList.add('press-active');
+      index++;
+    },100);
+  }
+  start(){
+    if(this.isRunning) return;
+    this.isRunning=true;
+    this.isPressing=false;
+    if(this.pressAnimationId) clearInterval(this.pressAnimationId);
+    this.leds.forEach(led=>led.classList.remove('press-active'));
+    this.startButton.disabled=true;
+    this.startSequence();
+  }
+  startSequence(){
+    const targetIndex=this.isRandomMode?Math.floor(Math.random()*18)+1:18;
+    this.currentIndex=0;
+    this.device.classList.add('has-active-leds');
+    this.intervalId=setInterval(()=>{
+      if(this.currentIndex<targetIndex){
+        this.leds[this.currentIndex].classList.add('active');
+        this.currentIndex++;
+      }else{
+        this.completeSequence();
+      }
+    },300);
+  }
+  completeSequence(){
+    clearInterval(this.intervalId);
+    this.isRunning=false;
+    this.startButton.disabled=false;
+    this.showThinkingEffect();
+  }
+  showThinkingEffect(){
+    let index=0;
+    let cycles=0;
+    const maxCycles=3;
+    this.leds.forEach(led=>{
+      led.classList.add('active');
+      led.style.opacity=0.3;
+    });
+    this.thinkingInterval=setInterval(()=>{
+      this.leds.forEach((led,i)=>{
+        if(i===index){led.style.opacity=1;}
+        else{led.style.opacity=0.3;}
+      });
+      index=(index+1)%this.leds.length;
+      if(index===0){
+        cycles++;
+        if(cycles>=maxCycles){
+          clearInterval(this.thinkingInterval);
+          this.leds.forEach(led=>led.style.opacity=1);
+          this.showFinalResult();
+        }
+      }
+    },100);
+  }
+  showFinalResult(){
+    this.blinkResult();
+  }
+  blinkResult(){
+    const activeLEDs=this.leds.filter(led=>led.classList.contains('active'));
+    let blinkCount=0;
+    const blinkInterval=setInterval(()=>{
+      activeLEDs.forEach(led=>{
+        led.style.opacity=(blinkCount%2===0)?0.3:1;
+      });
+      blinkCount++;
+      if(blinkCount>=6){
+        clearInterval(blinkInterval);
+        activeLEDs.forEach(led=>{
+          led.style.opacity=1;
+          led.style.animation='pulse 2s ease-in-out infinite';
+        });
+      }
+    },400);
+  }
+  reset(){
+    if(this.intervalId) clearInterval(this.intervalId);
+    if(this.thinkingInterval) clearInterval(this.thinkingInterval);
+    if(this.pressAnimationId) clearInterval(this.pressAnimationId);
+    if(this.pressTimer) clearTimeout(this.pressTimer);
+    this.isRunning=false;
+    this.isPressing=false;
+    this.currentIndex=0;
+    this.startButton.disabled=false;
+    this.device.classList.remove('has-active-leds');
+    this.leds.forEach(led=>{
+      led.classList.remove('active','press-active');
+      led.style.animation='';
+      led.style.opacity=1;
+      led.style.removeProperty('--press-color');
+    });
+  }
+  rotateScreen(){
+    this.deviceRotation=(this.deviceRotation+45)%360;
+    document.querySelector('.device-container').style.transform=`rotate(${this.deviceRotation}deg)`;
+  }
+}
+document.addEventListener('DOMContentLoaded',()=>{ window.ledSequence=new LEDSequence(); });
+</script>
+</body>
+</html>

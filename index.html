@@ -412,7 +412,7 @@
                 '#ffaa00'  // ゴールド
             ];
             this.patternNames = [
-                'LEFT→RIGHT', 'RIGHT→LEFT', 'CENTER→OUT', 'OUT→CENTER',
+                'LEFT→RIGHT', 'RIGHT→LEFT', 'CENTER→OUT', 'OUT→CENTER', 
                 'SEQUENTIAL', 'REVERSE', 'WAVE', 'RANDOM', 'PULSE', 'LIGHTNING'
             ];
             this.startButton = document.getElementById('startButton');
@@ -441,11 +441,11 @@
             const startAngle = 225;
             const totalAngle = 270;
             const angleStep = totalAngle / 18;
-
+            
             for (let i = 0; i < 18; i++) {
                 const angle = startAngle + (i * angleStep);
                 const colorIndex = Math.floor(i / 3);
-                const color = this.colors[(colorIndex % this.colors.length)];
+                const color = this.colors[colorIndex];
                 const led = document.createElement('div');
                 led.className = `led ${color}`;
                 const radians = (angle * Math.PI) / 180;
@@ -488,48 +488,57 @@
             }
             this.isPressing = true;
             this.startButton.style.background = 'linear-gradient(145deg, #00aa66, #006644)';
-
+            
+            // 新しいプレスアニメーション開始
             this.startPressAnimation();
-
+            
             this.pressTimer = setTimeout(() => {
                 this.start();
             }, 3000);
         }
 
         startPressAnimation() {
+            // 既存のアニメーションをクリア
             if (this.pressAnimationId) {
                 clearInterval(this.pressAnimationId);
             }
+
+            // すべてのLEDをリセット（既存の色も含めて完全リセット）
             this.leds.forEach(led => {
                 led.classList.remove('press-active', 'active');
             });
-            
+
+            // ランダムにパターンと色を選択
             const randomPattern = Math.floor(Math.random() * 10) + 1;
-            const randomColor = this.pressColors[(Math.floor(Math.random() * this.pressColors.length))];
+            const randomColor = this.pressColors[Math.floor(Math.random() * this.pressColors.length)];
             
-            switch (randomPattern) {
-                case 1: this.pattern1_LeftRight(randomColor); break;
-                case 2: this.pattern2_RightLeft(randomColor); break;
-                case 3: this.pattern3_CenterOut(randomColor); break;
-                case 4: this.pattern4_OutCenter(randomColor); break;
-                case 5: this.pattern5_Sequential(randomColor); break;
-                case 6: this.pattern6_ReverseSequential(randomColor); break;
-                case 7: this.pattern7_Wave(randomColor); break;
-                case 8: this.pattern8_Random(randomColor); break;
-                case 9: this.pattern9_Pulse(randomColor); break;
-                case 10: this.pattern10_Lightning(randomColor); break;
-                default: this.pattern1_LeftRight(randomColor); break;
+            // 各LEDに個別に色を設定
+            this.leds.forEach(led => {
+                led.style.setProperty('--press-color', randomColor);
+            });
+            
+            console.log(`ランダムパターン: ${randomPattern} (${this.patternNames[randomPattern-1]}), 色: ${randomColor}`);
+
+            // パターンに応じてアニメーション実行
+            switch(randomPattern) {
+                case 1: this.pattern1_LeftRight(); break;
+                case 2: this.pattern2_RightLeft(); break;
+                case 3: this.pattern3_CenterOut(); break;
+                case 4: this.pattern4_OutCenter(); break;
+                case 5: this.pattern5_Sequential(); break;
+                case 6: this.pattern6_ReverseSequential(); break;
+                case 7: this.pattern7_Wave(); break;
+                case 8: this.pattern8_Random(); break;
+                case 9: this.pattern9_Pulse(); break;
+                case 10: this.pattern10_Lightning(); break;
+                default: this.pattern1_LeftRight(); break;
             }
-            console.log(`ランダムパターン: ${randomPattern} (${this.patternNames[(randomPattern - 1)]}), 色: ${randomColor}`);
         }
 
-        setPressActive(index, color) {
-            this.leds[(index % this.leds.length)].classList.add('press-active');
-            this.leds[(index % this.leds.length)].style.color = color;
-        }
+        // updateAnimationDisplay メソッドを削除
 
         // パターン1: 左右から中央へ（元のパターン）
-        pattern1_LeftRight(color) {
+        pattern1_LeftRight() {
             let step = 0;
             const totalSteps = 9;
             const stepDuration = 3000 / (totalSteps + 1);
@@ -538,16 +547,16 @@
                 if (step <= totalSteps) {
                     const leftIndex = step;
                     const rightIndex = 17 - step;
-
+                    
                     if (leftIndex < 18) {
-                        this.setPressActive(leftIndex, color);
+                        this.leds[leftIndex].classList.add('press-active');
                     }
                     if (rightIndex >= 0 && rightIndex !== leftIndex) {
-                        this.setPressActive(rightIndex, color);
+                        this.leds[rightIndex].classList.add('press-active');
                     }
-
+                    
                     step++;
-
+                    
                     if (step > totalSteps) {
                         clearInterval(this.pressAnimationId);
                         this.pressAnimationId = null;
@@ -557,7 +566,7 @@
         }
 
         // パターン2: 右左から中央へ
-        pattern2_RightLeft(color) {
+        pattern2_RightLeft() {
             let step = 0;
             const totalSteps = 9;
             const stepDuration = 3000 / (totalSteps + 1);
@@ -566,16 +575,16 @@
                 if (step <= totalSteps) {
                     const rightIndex = step;
                     const leftIndex = 17 - step;
-
+                    
                     if (rightIndex < 18) {
-                        this.setPressActive(rightIndex, color);
+                        this.leds[rightIndex].classList.add('press-active');
                     }
                     if (leftIndex >= 0 && leftIndex !== rightIndex) {
-                        this.setPressActive(leftIndex, color);
+                        this.leds[leftIndex].classList.add('press-active');
                     }
-
+                    
                     step++;
-
+                    
                     if (step > totalSteps) {
                         clearInterval(this.pressAnimationId);
                         this.pressAnimationId = null;
@@ -585,7 +594,7 @@
         }
 
         // パターン3: 中央から外側へ
-        pattern3_CenterOut(color) {
+        pattern3_CenterOut() {
             let step = 0;
             const totalSteps = 9;
             const stepDuration = 3000 / (totalSteps + 1);
@@ -594,16 +603,16 @@
                 if (step <= totalSteps) {
                     const centerLeft = 8 - step;
                     const centerRight = 9 + step;
-
+                    
                     if (centerLeft >= 0) {
-                        this.setPressActive(centerLeft, color);
+                        this.leds[centerLeft].classList.add('press-active');
                     }
                     if (centerRight < 18) {
-                        this.setPressActive(centerRight, color);
+                        this.leds[centerRight].classList.add('press-active');
                     }
-
+                    
                     step++;
-
+                    
                     if (step > totalSteps) {
                         clearInterval(this.pressAnimationId);
                         this.pressAnimationId = null;
@@ -613,7 +622,7 @@
         }
 
         // パターン4: 外側から中央へ（両端スタート）
-        pattern4_OutCenter(color) {
+        pattern4_OutCenter() {
             let step = 0;
             const totalSteps = 9;
             const stepDuration = 3000 / (totalSteps + 1);
@@ -622,16 +631,16 @@
                 if (step <= totalSteps) {
                     const leftIndex = step;
                     const rightIndex = 17 - step;
-
+                    
                     if (leftIndex < 18 && rightIndex >= 0) {
-                        this.setPressActive(leftIndex, color);
+                        this.leds[leftIndex].classList.add('press-active');
                         if (leftIndex !== rightIndex) {
-                            this.setPressActive(rightIndex, color);
+                            this.leds[rightIndex].classList.add('press-active');
                         }
                     }
-
+                    
                     step++;
-
+                    
                     if (step > totalSteps) {
                         clearInterval(this.pressAnimationId);
                         this.pressAnimationId = null;
@@ -641,13 +650,13 @@
         }
 
         // パターン5: 順次点灯
-        pattern5_Sequential(color) {
+        pattern5_Sequential() {
             let step = 0;
             const stepDuration = 3000 / 18;
 
             this.pressAnimationId = setInterval(() => {
                 if (step < 18) {
-                    this.setPressActive(step, color);
+                    this.leds[step].classList.add('press-active');
                     step++;
                 } else {
                     clearInterval(this.pressAnimationId);
@@ -657,13 +666,13 @@
         }
 
         // パターン6: 逆順次点灯
-        pattern6_ReverseSequential(color) {
+        pattern6_ReverseSequential() {
             let step = 0;
             const stepDuration = 3000 / 18;
 
             this.pressAnimationId = setInterval(() => {
                 if (step < 18) {
-                    this.setPressActive(17 - step, color);
+                    this.leds[17 - step].classList.add('press-active');
                     step++;
                 } else {
                     clearInterval(this.pressAnimationId);
@@ -673,24 +682,27 @@
         }
 
         // パターン7: 波動
-        pattern7_Wave(color) {
+        pattern7_Wave() {
             let cycle = 0;
             const cycles = 6;
             const cycleTime = 3000 / cycles;
 
             this.pressAnimationId = setInterval(() => {
+                // 前の点灯をクリア
                 this.leds.forEach(led => led.classList.remove('press-active'));
-
+                
+                // 波の位置を計算
                 const wavePosition = (cycle * 3) % 18;
                 for (let i = 0; i < 3; i++) {
                     const index = (wavePosition + i) % 18;
-                    this.setPressActive(index, color);
+                    this.leds[index].classList.add('press-active');
                 }
-
+                
                 cycle++;
-
+                
                 if (cycle >= cycles) {
-                    this.leds.forEach(led => this.setPressActive(this.leds.indexOf(led), color));
+                    // 最後は全点灯
+                    this.leds.forEach(led => led.classList.add('press-active'));
                     clearInterval(this.pressAnimationId);
                     this.pressAnimationId = null;
                 }
@@ -698,15 +710,15 @@
         }
 
         // パターン8: ランダム
-        pattern8_Random(color) {
+        pattern8_Random() {
             let step = 0;
             const totalSteps = 18;
             const stepDuration = 3000 / totalSteps;
-            const indices = Array.from({ length: 18 }, (_, i) => i).sort(() => Math.random() - 0.5);
+            const indices = Array.from({length: 18}, (_, i) => i).sort(() => Math.random() - 0.5);
 
             this.pressAnimationId = setInterval(() => {
                 if (step < totalSteps) {
-                    this.setPressActive(indices[step], color);
+                    this.leds[indices[step]].classList.add('press-active');
                     step++;
                 } else {
                     clearInterval(this.pressAnimationId);
@@ -716,22 +728,22 @@
         }
 
         // パターン9: パルス（全体が点滅）
-        pattern9_Pulse(color) {
+        pattern9_Pulse() {
             let pulseCount = 0;
             const totalPulses = 6;
             const pulseTime = 3000 / (totalPulses * 2);
 
             this.pressAnimationId = setInterval(() => {
                 if (pulseCount % 2 === 0) {
-                    this.leds.forEach(led => this.setPressActive(this.leds.indexOf(led), color));
+                    this.leds.forEach(led => led.classList.add('press-active'));
                 } else {
                     this.leds.forEach(led => led.classList.remove('press-active'));
                 }
-
+                
                 pulseCount++;
-
+                
                 if (pulseCount >= totalPulses * 2) {
-                    this.leds.forEach(led => this.setPressActive(this.leds.indexOf(led), color));
+                    this.leds.forEach(led => led.classList.add('press-active'));
                     clearInterval(this.pressAnimationId);
                     this.pressAnimationId = null;
                 }
@@ -739,27 +751,29 @@
         }
 
         // パターン10: 雷（ランダムな激しい点滅）
-        pattern10_Lightning(color) {
+        pattern10_Lightning() {
             let step = 0;
             const totalSteps = 20;
             const stepDuration = 3000 / totalSteps;
 
             this.pressAnimationId = setInterval(() => {
+                // 前の点灯をクリア
                 this.leds.forEach(led => led.classList.remove('press-active'));
-
+                
+                // ランダムに3-8個点灯
                 const count = 3 + Math.floor(Math.random() * 6);
-                const indices = Array.from({ length: 18 }, (_, i) => i)
+                const indices = Array.from({length: 18}, (_, i) => i)
                     .sort(() => Math.random() - 0.5)
                     .slice(0, count);
-
+                
                 indices.forEach(index => {
-                    this.setPressActive(index, color);
+                    this.leds[index].classList.add('press-active');
                 });
-
+                
                 step++;
-
+                
                 if (step >= totalSteps) {
-                    this.leds.forEach(led => this.setPressActive(this.leds.indexOf(led), color));
+                    this.leds.forEach(led => led.classList.add('press-active'));
                     clearInterval(this.pressAnimationId);
                     this.pressAnimationId = null;
                 }
@@ -771,17 +785,19 @@
             if (!this.isPressing) return;
             this.isPressing = false;
             this.startButton.style.background = '';
-
+            
+            // プレスアニメーションを停止
             if (this.pressAnimationId) {
                 clearInterval(this.pressAnimationId);
                 this.pressAnimationId = null;
             }
-
+            
+            // プレス用のLEDクラスをすべて削除
             this.leds.forEach(led => {
                 led.classList.remove('press-active');
-                led.style.removeProperty('color');
+                led.style.removeProperty('--press-color'); // 色もリセット
             });
-
+            
             if (this.pressTimer) {
                 clearTimeout(this.pressTimer);
                 this.pressTimer = null;
@@ -792,17 +808,18 @@
             if (this.isRunning) return;
             this.isRunning = true;
             this.isPressing = false;
-
+            
+            // プレスアニメーションを停止
             if (this.pressAnimationId) {
                 clearInterval(this.pressAnimationId);
                 this.pressAnimationId = null;
             }
-
+            
+            // プレス用のLEDクラスをすべて削除
             this.leds.forEach(led => {
                 led.classList.remove('press-active');
-                led.style.removeProperty('color');
             });
-
+            
             this.startButton.disabled = true;
             this.startButton.style.background = '';
             this.startSequence();
@@ -836,7 +853,7 @@
             let cycleCount = 0;
             const maxCycles = 3;
             let currentLed = 0;
-
+            
             this.leds.forEach(led => {
                 led.classList.remove('active');
                 led.style.opacity = '0.3';
@@ -848,11 +865,11 @@
                 } else if (currentLed === 0 && cycleCount > 0) {
                     this.leds[17].style.opacity = '0.3';
                 }
-
+                
                 this.leds[currentLed].style.opacity = '1';
                 this.leds[currentLed].classList.add('active');
                 currentLed++;
-
+                
                 if (currentLed >= 18) {
                     currentLed = 0;
                     cycleCount++;
@@ -885,8 +902,8 @@
 
         showReturnEffect(finalTarget) {
             let currentIndex = 0;
-            const orangeEnd = 6;
-
+            const orangeEnd = 8;
+            
             const forwardInterval = setInterval(() => {
                 this.leds[currentIndex].classList.add('active');
                 currentIndex++;
@@ -901,7 +918,7 @@
 
         showReturnAnimation(startIndex, finalTarget) {
             let currentIndex = startIndex;
-
+            
             const returnInterval = setInterval(() => {
                 if (currentIndex >= finalTarget) {
                     this.leds[currentIndex].classList.remove('active');
@@ -916,7 +933,7 @@
 
         showNormalResult(targetIndex) {
             let currentIndex = 0;
-
+            
             const resultInterval = setInterval(() => {
                 this.leds[currentIndex].classList.add('active');
                 currentIndex++;
@@ -932,10 +949,10 @@
         blinkResult() {
             let blinkCount = 0;
             const maxBlinks = 3;
-
+            
             const blinkInterval = setInterval(() => {
                 const activeLeds = this.leds.filter(led => led.classList.contains('active'));
-
+                
                 if (blinkCount % 2 === 0) {
                     activeLeds.forEach(led => {
                         led.style.opacity = '0.3';
@@ -945,7 +962,7 @@
                         led.style.opacity = '1';
                     });
                 }
-
+                
                 blinkCount++;
                 if (blinkCount >= maxBlinks * 2) {
                     clearInterval(blinkInterval);
@@ -963,26 +980,28 @@
                 this.isRunning = false;
             }
             if (this.isPressing) {
-                this.endPress({ preventDefault: () => { } });
+                this.endPress({preventDefault: () => {}});
             }
-
+            
+            // プレスアニメーションも停止
             if (this.pressAnimationId) {
                 clearInterval(this.pressAnimationId);
                 this.pressAnimationId = null;
             }
-
+            
             this.currentIndex = 0;
             this.startButton.disabled = false;
             this.startButton.style.background = '';
             this.device.classList.remove('has-active-leds');
-
+            
+            // LEDを1度完全に消す（リセット操作時）
             this.leds.forEach(led => {
                 led.classList.remove('active', 'press-active');
                 led.style.animation = '';
                 led.style.opacity = '1';
-                led.style.removeProperty('color');
             });
-
+            
+            // 少し遅延してから通常状態に戻す（視覚的効果）
             setTimeout(() => {
                 this.leds.forEach(led => {
                     led.style.opacity = '1';
@@ -991,30 +1010,32 @@
         }
     }
 
+    // 回転機能
     let deviceRotation = 277.5;
 
     function rotateScreen() {
         deviceRotation += 45;
-
+        
         const deviceContainer = document.querySelector('.device-container');
         deviceContainer.style.transform = `translate(-50%, -50%) rotate(${deviceRotation}deg)`;
-
+        
         const rotationButton = document.getElementById('rotation-button');
         rotationButton.style.background = 'rgba(255, 255, 255, 0.8)';
         rotationButton.style.borderColor = 'rgba(255, 255, 255, 0.9)';
         rotationButton.style.transform = 'scale(1.3)';
-
+        
         setTimeout(() => {
             rotationButton.style.background = 'rgba(255, 255, 255, 0.3)';
             rotationButton.style.borderColor = 'rgba(255, 255, 255, 0.4)';
             rotationButton.style.transform = 'scale(1)';
         }, 200);
-
+        
         console.log(`デバイスを${deviceRotation}度回転しました`);
     }
 
+    // キーボードショートカット
     document.addEventListener('keydown', function(event) {
-        switch (event.key.toLowerCase()) {
+        switch(event.key.toLowerCase()) {
             case ' ':
                 event.preventDefault();
                 rotateScreen();
@@ -1040,7 +1061,6 @@
     `;
     document.head.appendChild(style);
 </script>
-
 ```
 
 </body>

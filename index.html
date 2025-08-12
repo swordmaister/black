@@ -1,254 +1,1047 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LED Sequence Demo</title>
-<style>
-body {
-  background: #111;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
-  font-family: sans-serif;
-  color: white;
-}
-.device-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: transform 0.5s ease;
-}
-.device {
-  position: relative;
-  width: 300px;
-  height: 300px;
-  border-radius: 50%;
-  background: #333;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.inner-glow {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  box-shadow: inset 0 0 30px rgba(255,255,255,0.1);
-  pointer-events: none;
-}
-.device.has-active-leds .inner-glow {
-  box-shadow: inset 0 0 50px rgba(255,255,255,0.4);
-}
-.led {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.2s;
-  background: transparent;
-  border: 1px solid transparent;
-  color: currentColor;
-}
-.led.active {
-  opacity: 1;
-  background: currentColor;
-  border-color: currentColor;
-  box-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
-}
-/* 修理: 押下中ランダム色反映 */
-.led.press-active {
-  opacity: 1;
-  background: var(--press-color, #00ff88);
-  border-color: var(--press-color, #00ff88);
-  box-shadow: 0 0 10px var(--press-color, #00ff88),
-              0 0 20px var(--press-color, #00ff88);
-}
-#startButton {
-  position: relative;
-  z-index: 10;
-  padding: 10px 20px;
-  font-size: 18px;
-  border-radius: 50%;
-  border: none;
-  background: #666;
-  color: white;
-  cursor: pointer;
-}
-#rotation-button {
-  position: absolute;
-  top: -60px;
-  padding: 5px 10px;
-  font-size: 14px;
-  cursor: pointer;
-}
-#randomModeSwitch {
-  position: absolute;
-  bottom: -60px;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>arcLedR2</title>
+    <style>
+        body {
+            user-select: none;
+            margin: 0;
+            padding: 60px;
+            background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+
+```
+    .device-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%); /* 中央配置のみ */
+        transition: transform 0.5s ease;
+        width: 400px;
+        height: 400px;
+        transform-origin: center center;
+    }
+
+    .device {
+        position: relative; /* relativeに変更 */
+        width: 300px;
+        height: 300px;
+        margin: 50px; /* marginで位置調整 */
+        background: radial-gradient(circle, #1a1a1a, #000);
+        border-radius: 50%;
+        box-shadow: 
+            0 0 30px rgba(0,0,0,0.8),
+            inset 0 0 20px rgba(255,255,255,0.1),
+            0 10px 30px rgba(0,0,0,0.6);
+        border: 3px solid #333;
+    }
+
+    .led {
+        position: absolute;
+        width: 8px;
+        height: 25px;
+        border-radius: 2px;
+        background: transparent; /* 完全に透明に */
+        border: none; /* 枠線を削除 */
+        transition: all 0.3s ease;
+        transform-origin: center center;
+        opacity: 0; /* 初期状態は見えない */
+    }
+
+    .led::before {
+        content: '';
+        position: absolute;
+        top: -5px;
+        left: -2px;
+        width: 12px;
+        height: 35px;
+        border-radius: 3px;
+        background: transparent;
+        transition: all 0.3s ease;
+        opacity: 0; /* 初期状態は見えない */
+    }
+
+    .led::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 1px;
+        width: 6px;
+        height: 21px;
+        border-radius: 1px;
+        background: transparent; /* 透明に */
+        transition: all 0.3s ease;
+        opacity: 0; /* 初期状態は見えない */
+    }
+
+    .led.active {
+        background: currentColor;
+        border: 1px solid currentColor; /* 光った時だけ枠線表示 */
+        opacity: 1; /* 光った時に表示 */
+        box-shadow: 
+            0 0 20px currentColor,
+            0 0 35px currentColor,
+            inset 0 0 8px rgba(255,255,255,0.3);
+    }
+
+    .led.active::before {
+        background: currentColor;
+        opacity: 0.3;
+        box-shadow: 
+            0 0 25px currentColor,
+            0 0 40px currentColor;
+    }
+
+    .led.active::after {
+        background: currentColor;
+        opacity: 1; /* 光った時に表示 */
+        box-shadow: 
+            0 0 10px currentColor,
+            inset 0 0 5px rgba(255,255,255,0.5);
+    }
+
+    /* プレス用の特別なLEDスタイル */
+    .led.press-active {
+        background: #00ff88;
+        border: 1px solid #00ff88; /* 光った時だけ枠線表示 */
+        color: #00ff88;
+        opacity: 1; /* 光った時に表示 */
+        box-shadow: 
+            0 0 20px #00ff88,
+            0 0 35px #00ff88,
+            inset 0 0 8px rgba(255,255,255,0.3);
+    }
+
+    .led.press-active::before {
+        background: #00ff88;
+        opacity: 0.3;
+        box-shadow: 
+            0 0 25px #00ff88,
+            0 0 40px #00ff88;
+    }
+
+    .led.press-active::after {
+        background: #00ff88;
+        opacity: 1; /* 光った時に表示 */
+        box-shadow: 
+            0 0 10px #00ff88,
+            inset 0 0 5px rgba(255,255,255,0.5);
+    }
+
+    .led.red { color: #ff4444; }
+    .led.orange { color: #ff8800; }
+    .led.yellow { color: #ffdd00; }
+    .led.green { color: #44ff44; }
+    .led.blue { color: #4488ff; }
+    .led.purple { color: #aa44ff; }
+
+    .start-button {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%,-50%);
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: linear-gradient(145deg, #2a2a2a, #111);
+        border: 4px solid #444;
+        color: #fff;
+        font-size: 10px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        transition: all 0.3s ease;
+        box-shadow: 
+            0 8px 20px rgba(0,0,0,0.7),
+            inset 0 3px 8px rgba(255,255,255,0.15),
+            0 0 0 2px rgba(0,255,136,0.2);
+        user-select: none;
+        backdrop-filter: blur(5px);
+    }
+
+    .start-button:hover {
+        background: linear-gradient(145deg, #333, #1a1a1a);
+        box-shadow: 
+            0 6px 15px rgba(0,0,0,0.8),
+            inset 0 3px 8px rgba(255,255,255,0.2),
+            0 0 0 2px rgba(0,255,136,0.4);
+        transform: translate(-50%,-50%) translateX(3px);
+    }
+
+    .start-button:active {
+        transform: translate(-50%,-50%) scale(0.95);
+    }
+
+    .start-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .inner-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 140px;
+        height: 140px;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        background: radial-gradient(circle, transparent 60%, rgba(0,0,0,0.3) 100%);
+        pointer-events: none;
+        transition: all 0.5s ease;
+    }
+
+    .device.has-active-leds .inner-glow {
+        background: radial-gradient(circle, rgba(68, 255, 68, 0.1) 0%, transparent 70%);
+    }
+
+    .mode-switch {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #fff;
+        font-size: 11px;
+        font-weight: bold;
+        background: rgba(0,0,0,0.85);
+        padding: 6px 10px;
+        border-radius: 20px;
+        border: 2px solid #444;
+        backdrop-filter: blur(10px);
+        box-shadow: 
+            0 4px 12px rgba(0,0,0,0.7),
+            inset 0 1px 3px rgba(255,255,255,0.15);
+        z-index: 1000;
+    }
+
+    .mode-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #666;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 
+            0 1px 3px rgba(0, 0, 0, 0.3),
+            inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    }
+
+    .mode-indicator.demo {
+        background: #4488ff;
+        box-shadow: 
+            0 0 8px rgba(68,136,255,0.5),
+            0 1px 3px rgba(0, 0, 0, 0.3),
+            inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    }
+
+    .mode-indicator.random {
+        background: #ff8800;
+        box-shadow: 
+            0 0 8px rgba(255,136,0,0.5),
+            0 1px 3px rgba(0, 0, 0, 0.3),
+            inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    }
+
+    .switch {
+        position: relative;
+        width: 50px;
+        height: 25px;
+        background: linear-gradient(145deg, #333, #111);
+        border-radius: 25px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid #555;
+        box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    .switch.active {
+        background: linear-gradient(145deg, #00cc77, #009955);
+        border-color: #00ff88;
+        box-shadow: 
+            inset 0 2px 5px rgba(0,0,0,0.2),
+            0 0 15px rgba(0,255,136,0.3);
+    }
+
+    .switch-handle {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 19px;
+        height: 19px;
+        background: linear-gradient(145deg, #fff, #e0e0e0);
+        border-radius: 50%;
+        transition: all 0.3s ease;
+        box-shadow: 
+            0 2px 6px rgba(0,0,0,0.4),
+            inset 0 1px 2px rgba(255,255,255,0.8);
+    }
+
+    .switch.active .switch-handle {
+        transform: translateX(23px);
+        background: linear-gradient(145deg, #fff, #f0f0f0);
+    }
+
+    /* アニメーションパターン表示（読み取り専用） */
+    .animation-display {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0,0,0,0.85);
+        padding: 8px 12px;
+        border-radius: 15px;
+        border: 2px solid #444;
+        backdrop-filter: blur(10px);
+        box-shadow: 
+            0 4px 12px rgba(0,0,0,0.7),
+            inset 0 1px 3px rgba(255,255,255,0.15);
+        z-index: 1000;
+        text-align: center;
+    }
+
+    .animation-display .pattern-name {
+        color: #00ff88;
+        font-size: 11px;
+        font-weight: bold;
+        margin-bottom: 2px;
+    }
+
+    .animation-display .pattern-color {
+        width: 20px;
+        height: 6px;
+        border-radius: 3px;
+        margin: 0 auto;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    #rotation-button {
+        position: fixed;
+        bottom: 25px;
+        right: 25px;
+        width: 20px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 1000;
+        backdrop-filter: blur(5px);
+    }
+
+    #rotation-button:hover {
+        background: rgba(255, 255, 255, 0.5);
+        border-color: rgba(255, 255, 255, 0.6);
+        transform: scale(1.2);
+    }
+
+    #rotation-button:active {
+        transform: scale(0.9);
+        background: rgba(255, 255, 255, 0.7);
+    }
+
+    /* 不要なスタイルを削除 */
+    .press-indicator { display: none; }
+    .progress-ring { display: none; }
+    .progress-ring-bg { display: none; }
+    .progress-ring-fill { display: none; }
+    #rotation-indicator { display: none; }
+    .progress-info { display: none; }
+    .mode-labels { display: none; }
+    .reset-button { display: none; }
+    .press-text { display: none; }
 </style>
+```
+
 </head>
 <body>
-<div class="device-container">
-  <div class="device">
-    <div class="inner-glow"></div>
-    <button id="rotation-button">回転</button>
-    <button id="startButton">●</button>
-    <label id="randomModeSwitch">
-      <input type="checkbox" id="randomModeCheckbox"> ランダムモード
-    </label>
-  </div>
+    <div class="device-container" style="transform: translate(-50%, -50%) rotate(277.5deg);">
+        <div class="device" id="device">
+            <div class="inner-glow"></div>
+            <button class="start-button" id="startButton">
+                ●
+            </button>
+        </div>
+    </div>
+
+```
+<div class="mode-switch">
+    <div class="mode-indicator" id="modeIndicator"></div>
+    <div class="switch" id="modeSwitch">
+        <div class="switch-handle"></div>
+    </div>
 </div>
+
+<div id="rotation-button" onclick="rotateScreen()"></div>
+
 <script>
-class LEDSequence {
-  constructor() {
-    this.leds = [];
-    this.intervalId = null;
-    this.pressAnimationId = null;
-    this.thinkingInterval = null;
-    this.isRunning = false;
-    this.isPressing = false;
-    this.currentIndex = 0;
-    this.isRandomMode = false;
-    this.pressTimer = null;
-    this.deviceRotation = 0;
-    this.pressColors = ['#00ff88','#ff8800','#0088ff','#ff00ff','#ffff00','#00ffff'];
-    this.init();
-  }
-  init() {
-    this.device = document.querySelector('.device');
-    this.startButton = document.getElementById('startButton');
-    this.createLEDs();
-    this.startButton.addEventListener('mousedown', e=>this.startPress(e));
-    this.startButton.addEventListener('mouseup', e=>this.endPress(e));
-    this.startButton.addEventListener('mouseleave', e=>this.endPress(e));
-    this.startButton.addEventListener('touchstart', e=>this.startPress(e));
-    this.startButton.addEventListener('touchend', e=>this.endPress(e));
-    this.startButton.addEventListener('touchcancel', e=>this.endPress(e));
-    document.getElementById('rotation-button').addEventListener('click', ()=>this.rotateScreen());
-    document.getElementById('randomModeCheckbox').addEventListener('change', e=>{
-      this.isRandomMode = e.target.checked;
-    });
-    document.addEventListener('keydown', e=>{
-      if(e.code==='Space'){ this.rotateScreen(); e.preventDefault(); }
-      else if(e.code==='Escape'){ this.reset(); }
-    });
-  }
-  createLEDs() {
-    const ledCount = 18;
-    const startAngle = 225;
-    const totalAngle = 270;
-    const angleStep = totalAngle / ledCount;
-    const radius = 120;
-    const colors = ['red','orange','yellow','green','blue','purple'];
-    for(let i=0;i<ledCount;i++){
-      const angle = (startAngle + i*angleStep)*Math.PI/180;
-      const x = 150 + radius*Math.cos(angle) - 10;
-      const y = 150 + radius*Math.sin(angle) - 10;
-      const led = document.createElement('div');
-      led.className = 'led';
-      led.style.left = `${x}px`;
-      led.style.top = `${y}px`;
-      led.style.color = colors[Math.floor(i/3)];
-      this.device.appendChild(led);
-      this.leds.push(led);
+    class LEDSequence {
+        constructor() {
+            this.colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
+            this.colorNames = ['赤', 'オレンジ', '黄色', '緑', '青', '紫'];
+            this.leds = [];
+            this.currentIndex = 0;
+            this.isRunning = false;
+            this.intervalId = null;
+            this.pressTimer = null;
+            this.isPressing = false;
+            this.isRandomMode = false;
+            this.pressAnimationId = null;
+            this.animationPattern = 1; // デフォルトパターン
+            this.pressColors = [
+                '#00ff88', // 緑
+                '#ff4444', // 赤
+                '#4444ff', // 青
+                '#ff8800', // オレンジ
+                '#ffdd00', // 黄色
+                '#aa44ff', // 紫
+                '#00ffff', // シアン
+                '#ff00ff', // マゼンタ
+                '#ffffff', // 白
+                '#ffaa00'  // ゴールド
+            ];
+            this.patternNames = [
+                'LEFT→RIGHT', 'RIGHT→LEFT', 'CENTER→OUT', 'OUT→CENTER',
+                'SEQUENTIAL', 'REVERSE', 'WAVE', 'RANDOM', 'PULSE', 'LIGHTNING'
+            ];
+            this.startButton = document.getElementById('startButton');
+            this.modeSwitch = document.getElementById('modeSwitch');
+            this.modeIndicator = document.getElementById('modeIndicator');
+            this.device = document.getElementById('device');
+            this.init();
+        }
+
+        init() {
+            this.createLEDs();
+            this.startButton.addEventListener('mousedown', (e) => this.startPress(e));
+            this.startButton.addEventListener('mouseup', (e) => this.endPress(e));
+            this.startButton.addEventListener('mouseleave', (e) => this.endPress(e));
+            this.startButton.addEventListener('touchstart', (e) => this.startPress(e));
+            this.startButton.addEventListener('touchend', (e) => this.endPress(e));
+            this.startButton.addEventListener('touchcancel', (e) => this.endPress(e));
+            this.modeSwitch.addEventListener('click', () => this.toggleMode());
+            this.updateModeIndicator();
+        }
+
+        createLEDs() {
+            const radius = 115;
+            const centerX = 150;
+            const centerY = 150;
+            const startAngle = 225;
+            const totalAngle = 270;
+            const angleStep = totalAngle / 18;
+
+            for (let i = 0; i < 18; i++) {
+                const angle = startAngle + (i * angleStep);
+                const colorIndex = Math.floor(i / 3);
+                const color = this.colors[(colorIndex % this.colors.length)];
+                const led = document.createElement('div');
+                led.className = `led ${color}`;
+                const radians = (angle * Math.PI) / 180;
+                const x = centerX + radius * Math.cos(radians) - 4;
+                const y = centerY + radius * Math.sin(radians) - 12;
+                led.style.left = x + 'px';
+                led.style.top = y + 'px';
+                const rotation = angle + 180;
+                led.style.transform = `rotate(${rotation}deg)`;
+                this.device.appendChild(led);
+                this.leds.push(led);
+            }
+        }
+
+        toggleMode() {
+            this.isRandomMode = !this.isRandomMode;
+            if (this.isRandomMode) {
+                this.modeSwitch.classList.add('active');
+            } else {
+                this.modeSwitch.classList.remove('active');
+            }
+            this.updateModeIndicator();
+        }
+
+        updateModeIndicator() {
+            this.modeIndicator.className = 'mode-indicator';
+            if (this.isRandomMode) {
+                this.modeIndicator.classList.add('random');
+            } else {
+                this.modeIndicator.classList.add('demo');
+            }
+        }
+
+        startPress(e) {
+            e.preventDefault();
+            if (this.isPressing) return;
+            if (this.isRunning || this.currentIndex > 0) {
+                this.reset();
+                return;
+            }
+            this.isPressing = true;
+            this.startButton.style.background = 'linear-gradient(145deg, #00aa66, #006644)';
+
+            this.startPressAnimation();
+
+            this.pressTimer = setTimeout(() => {
+                this.start();
+            }, 3000);
+        }
+
+        startPressAnimation() {
+            if (this.pressAnimationId) {
+                clearInterval(this.pressAnimationId);
+            }
+            this.leds.forEach(led => {
+                led.classList.remove('press-active', 'active');
+            });
+            
+            const randomPattern = Math.floor(Math.random() * 10) + 1;
+            const randomColor = this.pressColors[(Math.floor(Math.random() * this.pressColors.length))];
+            
+            switch (randomPattern) {
+                case 1: this.pattern1_LeftRight(randomColor); break;
+                case 2: this.pattern2_RightLeft(randomColor); break;
+                case 3: this.pattern3_CenterOut(randomColor); break;
+                case 4: this.pattern4_OutCenter(randomColor); break;
+                case 5: this.pattern5_Sequential(randomColor); break;
+                case 6: this.pattern6_ReverseSequential(randomColor); break;
+                case 7: this.pattern7_Wave(randomColor); break;
+                case 8: this.pattern8_Random(randomColor); break;
+                case 9: this.pattern9_Pulse(randomColor); break;
+                case 10: this.pattern10_Lightning(randomColor); break;
+                default: this.pattern1_LeftRight(randomColor); break;
+            }
+            console.log(`ランダムパターン: ${randomPattern} (${this.patternNames[(randomPattern - 1)]}), 色: ${randomColor}`);
+        }
+
+        setPressActive(index, color) {
+            this.leds[(index % this.leds.length)].classList.add('press-active');
+            this.leds[(index % this.leds.length)].style.color = color;
+        }
+
+        // パターン1: 左右から中央へ（元のパターン）
+        pattern1_LeftRight(color) {
+            let step = 0;
+            const totalSteps = 9;
+            const stepDuration = 3000 / (totalSteps + 1);
+
+            this.pressAnimationId = setInterval(() => {
+                if (step <= totalSteps) {
+                    const leftIndex = step;
+                    const rightIndex = 17 - step;
+
+                    if (leftIndex < 18) {
+                        this.setPressActive(leftIndex, color);
+                    }
+                    if (rightIndex >= 0 && rightIndex !== leftIndex) {
+                        this.setPressActive(rightIndex, color);
+                    }
+
+                    step++;
+
+                    if (step > totalSteps) {
+                        clearInterval(this.pressAnimationId);
+                        this.pressAnimationId = null;
+                    }
+                }
+            }, stepDuration);
+        }
+
+        // パターン2: 右左から中央へ
+        pattern2_RightLeft(color) {
+            let step = 0;
+            const totalSteps = 9;
+            const stepDuration = 3000 / (totalSteps + 1);
+
+            this.pressAnimationId = setInterval(() => {
+                if (step <= totalSteps) {
+                    const rightIndex = step;
+                    const leftIndex = 17 - step;
+
+                    if (rightIndex < 18) {
+                        this.setPressActive(rightIndex, color);
+                    }
+                    if (leftIndex >= 0 && leftIndex !== rightIndex) {
+                        this.setPressActive(leftIndex, color);
+                    }
+
+                    step++;
+
+                    if (step > totalSteps) {
+                        clearInterval(this.pressAnimationId);
+                        this.pressAnimationId = null;
+                    }
+                }
+            }, stepDuration);
+        }
+
+        // パターン3: 中央から外側へ
+        pattern3_CenterOut(color) {
+            let step = 0;
+            const totalSteps = 9;
+            const stepDuration = 3000 / (totalSteps + 1);
+
+            this.pressAnimationId = setInterval(() => {
+                if (step <= totalSteps) {
+                    const centerLeft = 8 - step;
+                    const centerRight = 9 + step;
+
+                    if (centerLeft >= 0) {
+                        this.setPressActive(centerLeft, color);
+                    }
+                    if (centerRight < 18) {
+                        this.setPressActive(centerRight, color);
+                    }
+
+                    step++;
+
+                    if (step > totalSteps) {
+                        clearInterval(this.pressAnimationId);
+                        this.pressAnimationId = null;
+                    }
+                }
+            }, stepDuration);
+        }
+
+        // パターン4: 外側から中央へ（両端スタート）
+        pattern4_OutCenter(color) {
+            let step = 0;
+            const totalSteps = 9;
+            const stepDuration = 3000 / (totalSteps + 1);
+
+            this.pressAnimationId = setInterval(() => {
+                if (step <= totalSteps) {
+                    const leftIndex = step;
+                    const rightIndex = 17 - step;
+
+                    if (leftIndex < 18 && rightIndex >= 0) {
+                        this.setPressActive(leftIndex, color);
+                        if (leftIndex !== rightIndex) {
+                            this.setPressActive(rightIndex, color);
+                        }
+                    }
+
+                    step++;
+
+                    if (step > totalSteps) {
+                        clearInterval(this.pressAnimationId);
+                        this.pressAnimationId = null;
+                    }
+                }
+            }, stepDuration);
+        }
+
+        // パターン5: 順次点灯
+        pattern5_Sequential(color) {
+            let step = 0;
+            const stepDuration = 3000 / 18;
+
+            this.pressAnimationId = setInterval(() => {
+                if (step < 18) {
+                    this.setPressActive(step, color);
+                    step++;
+                } else {
+                    clearInterval(this.pressAnimationId);
+                    this.pressAnimationId = null;
+                }
+            }, stepDuration);
+        }
+
+        // パターン6: 逆順次点灯
+        pattern6_ReverseSequential(color) {
+            let step = 0;
+            const stepDuration = 3000 / 18;
+
+            this.pressAnimationId = setInterval(() => {
+                if (step < 18) {
+                    this.setPressActive(17 - step, color);
+                    step++;
+                } else {
+                    clearInterval(this.pressAnimationId);
+                    this.pressAnimationId = null;
+                }
+            }, stepDuration);
+        }
+
+        // パターン7: 波動
+        pattern7_Wave(color) {
+            let cycle = 0;
+            const cycles = 6;
+            const cycleTime = 3000 / cycles;
+
+            this.pressAnimationId = setInterval(() => {
+                this.leds.forEach(led => led.classList.remove('press-active'));
+
+                const wavePosition = (cycle * 3) % 18;
+                for (let i = 0; i < 3; i++) {
+                    const index = (wavePosition + i) % 18;
+                    this.setPressActive(index, color);
+                }
+
+                cycle++;
+
+                if (cycle >= cycles) {
+                    this.leds.forEach(led => this.setPressActive(this.leds.indexOf(led), color));
+                    clearInterval(this.pressAnimationId);
+                    this.pressAnimationId = null;
+                }
+            }, cycleTime);
+        }
+
+        // パターン8: ランダム
+        pattern8_Random(color) {
+            let step = 0;
+            const totalSteps = 18;
+            const stepDuration = 3000 / totalSteps;
+            const indices = Array.from({ length: 18 }, (_, i) => i).sort(() => Math.random() - 0.5);
+
+            this.pressAnimationId = setInterval(() => {
+                if (step < totalSteps) {
+                    this.setPressActive(indices[step], color);
+                    step++;
+                } else {
+                    clearInterval(this.pressAnimationId);
+                    this.pressAnimationId = null;
+                }
+            }, stepDuration);
+        }
+
+        // パターン9: パルス（全体が点滅）
+        pattern9_Pulse(color) {
+            let pulseCount = 0;
+            const totalPulses = 6;
+            const pulseTime = 3000 / (totalPulses * 2);
+
+            this.pressAnimationId = setInterval(() => {
+                if (pulseCount % 2 === 0) {
+                    this.leds.forEach(led => this.setPressActive(this.leds.indexOf(led), color));
+                } else {
+                    this.leds.forEach(led => led.classList.remove('press-active'));
+                }
+
+                pulseCount++;
+
+                if (pulseCount >= totalPulses * 2) {
+                    this.leds.forEach(led => this.setPressActive(this.leds.indexOf(led), color));
+                    clearInterval(this.pressAnimationId);
+                    this.pressAnimationId = null;
+                }
+            }, pulseTime);
+        }
+
+        // パターン10: 雷（ランダムな激しい点滅）
+        pattern10_Lightning(color) {
+            let step = 0;
+            const totalSteps = 20;
+            const stepDuration = 3000 / totalSteps;
+
+            this.pressAnimationId = setInterval(() => {
+                this.leds.forEach(led => led.classList.remove('press-active'));
+
+                const count = 3 + Math.floor(Math.random() * 6);
+                const indices = Array.from({ length: 18 }, (_, i) => i)
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, count);
+
+                indices.forEach(index => {
+                    this.setPressActive(index, color);
+                });
+
+                step++;
+
+                if (step >= totalSteps) {
+                    this.leds.forEach(led => this.setPressActive(this.leds.indexOf(led), color));
+                    clearInterval(this.pressAnimationId);
+                    this.pressAnimationId = null;
+                }
+            }, stepDuration);
+        }
+
+        endPress(e) {
+            e.preventDefault();
+            if (!this.isPressing) return;
+            this.isPressing = false;
+            this.startButton.style.background = '';
+
+            if (this.pressAnimationId) {
+                clearInterval(this.pressAnimationId);
+                this.pressAnimationId = null;
+            }
+
+            this.leds.forEach(led => {
+                led.classList.remove('press-active');
+                led.style.removeProperty('color');
+            });
+
+            if (this.pressTimer) {
+                clearTimeout(this.pressTimer);
+                this.pressTimer = null;
+            }
+        }
+
+        start() {
+            if (this.isRunning) return;
+            this.isRunning = true;
+            this.isPressing = false;
+
+            if (this.pressAnimationId) {
+                clearInterval(this.pressAnimationId);
+                this.pressAnimationId = null;
+            }
+
+            this.leds.forEach(led => {
+                led.classList.remove('press-active');
+                led.style.removeProperty('color');
+            });
+
+            this.startButton.disabled = true;
+            this.startButton.style.background = '';
+            this.startSequence();
+        }
+
+        startSequence() {
+            let targetIndex = 18;
+            if (this.isRandomMode) {
+                targetIndex = Math.floor(Math.random() * 18) + 1;
+            }
+            this.intervalId = setInterval(() => {
+                if (this.currentIndex < targetIndex) {
+                    this.leds[this.currentIndex].classList.add('active');
+                    this.device.classList.add('has-active-leds');
+                    this.currentIndex++;
+                    if (this.currentIndex >= targetIndex) {
+                        this.completeSequence();
+                    }
+                }
+            }, 300);
+        }
+
+        completeSequence() {
+            clearInterval(this.intervalId);
+            this.isRunning = false;
+            this.startButton.disabled = false;
+            this.showThinkingEffect();
+        }
+
+        showThinkingEffect() {
+            let cycleCount = 0;
+            const maxCycles = 3;
+            let currentLed = 0;
+
+            this.leds.forEach(led => {
+                led.classList.remove('active');
+                led.style.opacity = '0.3';
+            });
+
+            const thinkingInterval = setInterval(() => {
+                if (currentLed > 0) {
+                    this.leds[currentLed - 1].style.opacity = '0.3';
+                } else if (currentLed === 0 && cycleCount > 0) {
+                    this.leds[17].style.opacity = '0.3';
+                }
+
+                this.leds[currentLed].style.opacity = '1';
+                this.leds[currentLed].classList.add('active');
+                currentLed++;
+
+                if (currentLed >= 18) {
+                    currentLed = 0;
+                    cycleCount++;
+                    this.leds[17].style.opacity = '0.3';
+                    if (cycleCount >= maxCycles) {
+                        clearInterval(thinkingInterval);
+                        this.showFinalResult();
+                    }
+                }
+            }, 100);
+        }
+
+        showFinalResult() {
+            this.leds.forEach(led => {
+                led.classList.remove('active');
+                led.style.opacity = '1';
+                led.style.animation = '';
+            });
+
+            let targetIndex = this.currentIndex;
+            if (this.isRandomMode && this.currentIndex > 0) {
+                const finalColorIndex = Math.floor((this.currentIndex - 1) / 3);
+                if (finalColorIndex <= 1) {
+                    this.showReturnEffect(targetIndex);
+                    return;
+                }
+            }
+            this.showNormalResult(targetIndex);
+        }
+
+        showReturnEffect(finalTarget) {
+            let currentIndex = 0;
+            const orangeEnd = 6;
+
+            const forwardInterval = setInterval(() => {
+                this.leds[currentIndex].classList.add('active');
+                currentIndex++;
+                if (currentIndex > orangeEnd) {
+                    clearInterval(forwardInterval);
+                    setTimeout(() => {
+                        this.showReturnAnimation(orangeEnd, finalTarget);
+                    }, 500);
+                }
+            }, 150);
+        }
+
+        showReturnAnimation(startIndex, finalTarget) {
+            let currentIndex = startIndex;
+
+            const returnInterval = setInterval(() => {
+                if (currentIndex >= finalTarget) {
+                    this.leds[currentIndex].classList.remove('active');
+                    currentIndex--;
+                }
+                if (currentIndex < finalTarget) {
+                    clearInterval(returnInterval);
+                    this.blinkResult();
+                }
+            }, 150);
+        }
+
+        showNormalResult(targetIndex) {
+            let currentIndex = 0;
+
+            const resultInterval = setInterval(() => {
+                this.leds[currentIndex].classList.add('active');
+                currentIndex++;
+                if (currentIndex >= targetIndex) {
+                    clearInterval(resultInterval);
+                    setTimeout(() => {
+                        this.blinkResult();
+                    }, 300);
+                }
+            }, 200);
+        }
+
+        blinkResult() {
+            let blinkCount = 0;
+            const maxBlinks = 3;
+
+            const blinkInterval = setInterval(() => {
+                const activeLeds = this.leds.filter(led => led.classList.contains('active'));
+
+                if (blinkCount % 2 === 0) {
+                    activeLeds.forEach(led => {
+                        led.style.opacity = '0.3';
+                    });
+                } else {
+                    activeLeds.forEach(led => {
+                        led.style.opacity = '1';
+                    });
+                }
+
+                blinkCount++;
+                if (blinkCount >= maxBlinks * 2) {
+                    clearInterval(blinkInterval);
+                    activeLeds.forEach(led => {
+                        led.style.opacity = '1';
+                        led.style.animation = 'pulse 2s ease-in-out infinite';
+                    });
+                }
+            }, 400);
+        }
+
+        reset() {
+            if (this.isRunning) {
+                clearInterval(this.intervalId);
+                this.isRunning = false;
+            }
+            if (this.isPressing) {
+                this.endPress({ preventDefault: () => { } });
+            }
+
+            if (this.pressAnimationId) {
+                clearInterval(this.pressAnimationId);
+                this.pressAnimationId = null;
+            }
+
+            this.currentIndex = 0;
+            this.startButton.disabled = false;
+            this.startButton.style.background = '';
+            this.device.classList.remove('has-active-leds');
+
+            this.leds.forEach(led => {
+                led.classList.remove('active', 'press-active');
+                led.style.animation = '';
+                led.style.opacity = '1';
+                led.style.removeProperty('color');
+            });
+
+            setTimeout(() => {
+                this.leds.forEach(led => {
+                    led.style.opacity = '1';
+                });
+            }, 100);
+        }
     }
-  }
-  startPress(e){
-    e.preventDefault();
-    if(this.isPressing) return;
-    if(this.isRunning || this.currentIndex>0){ this.reset(); return; }
-    this.isPressing = true;
-    this.startButton.style.background = '#444';
-    this.startPressAnimation();
-    this.pressTimer = setTimeout(()=>this.start(),3000);
-  }
-  endPress(e){
-    e.preventDefault();
-    this.isPressing = false;
-    this.startButton.style.background = '#666';
-    if(this.pressAnimationId) clearInterval(this.pressAnimationId);
-    this.leds.forEach(led=>{
-      led.classList.remove('press-active');
-      led.style.removeProperty('--press-color');
+
+    let deviceRotation = 277.5;
+
+    function rotateScreen() {
+        deviceRotation += 45;
+
+        const deviceContainer = document.querySelector('.device-container');
+        deviceContainer.style.transform = `translate(-50%, -50%) rotate(${deviceRotation}deg)`;
+
+        const rotationButton = document.getElementById('rotation-button');
+        rotationButton.style.background = 'rgba(255, 255, 255, 0.8)';
+        rotationButton.style.borderColor = 'rgba(255, 255, 255, 0.9)';
+        rotationButton.style.transform = 'scale(1.3)';
+
+        setTimeout(() => {
+            rotationButton.style.background = 'rgba(255, 255, 255, 0.3)';
+            rotationButton.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+            rotationButton.style.transform = 'scale(1)';
+        }, 200);
+
+        console.log(`デバイスを${deviceRotation}度回転しました`);
+    }
+
+    document.addEventListener('keydown', function(event) {
+        switch (event.key.toLowerCase()) {
+            case ' ':
+                event.preventDefault();
+                rotateScreen();
+                break;
+            case 'escape':
+                if (window.ledSequence) {
+                    window.ledSequence.reset();
+                }
+                break;
+        }
     });
-    if(this.pressTimer) clearTimeout(this.pressTimer);
-  }
-  startPressAnimation(){
-    if(this.pressAnimationId) clearInterval(this.pressAnimationId);
-    this.leds.forEach(led=>{
-      led.classList.remove('press-active','active');
+
+    window.addEventListener('DOMContentLoaded', () => {
+        window.ledSequence = new LEDSequence();
     });
-    const randomPattern = Math.floor(Math.random()*10)+1;
-    const randomColor = this.pressColors[Math.floor(Math.random()*this.pressColors.length)];
-    // 修理: 押下中ランダム色をCSS変数にセット
-    this.leds.forEach(led=>led.style.setProperty('--press-color', randomColor));
-    const patterns = [
-      ()=>this.pattern1_LeftRight()
-      // 他パターンは元コード通り
-    ];
-    patterns[(randomPattern-1) % patterns.length]();
-  }
-  pattern1_LeftRight(){
-    let index=0;
-    this.pressAnimationId=setInterval(()=>{
-      this.leds.forEach(led=>led.classList.remove('press-active'));
-      this.leds[index%this.leds.length].classList.add('press-active');
-      index++;
-    },100);
-  }
-  start(){
-    if(this.isRunning) return;
-    this.isRunning=true;
-    this.isPressing=false;
-    if(this.pressAnimationId) clearInterval(this.pressAnimationId);
-    this.leds.forEach(led=>led.classList.remove('press-active'));
-    this.startButton.disabled=true;
-    this.startSequence();
-  }
-  startSequence(){
-    const targetIndex=this.isRandomMode?Math.floor(Math.random()*18)+1:18;
-    this.currentIndex=0;
-    this.device.classList.add('has-active-leds');
-    this.intervalId=setInterval(()=>{
-      if(this.currentIndex<targetIndex){
-        this.leds[this.currentIndex].classList.add('active');
-        this.currentIndex++;
-      }else{
-        this.completeSequence();
-      }
-    },300);
-  }
-  completeSequence(){
-    clearInterval(this.intervalId);
-    this.isRunning=false;
-    this.startButton.disabled=false;
-  }
-  reset(){
-    if(this.intervalId) clearInterval(this.intervalId);
-    if(this.thinkingInterval) clearInterval(this.thinkingInterval);
-    if(this.pressAnimationId) clearInterval(this.pressAnimationId);
-    if(this.pressTimer) clearTimeout(this.pressTimer);
-    this.isRunning=false;
-    this.isPressing=false;
-    this.currentIndex=0;
-    this.startButton.disabled=false;
-    this.device.classList.remove('has-active-leds');
-    this.leds.forEach(led=>{
-      led.classList.remove('active','press-active');
-      led.style.removeProperty('--press-color');
-    });
-  }
-  rotateScreen(){
-    this.deviceRotation=(this.deviceRotation+45)%360;
-    document.querySelector('.device-container').style.transform=`rotate(${this.deviceRotation}deg)`;
-  }
-}
-document.addEventListener('DOMContentLoaded',()=>{ window.ledSequence=new LEDSequence(); });
+
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    `;
+    document.head.appendChild(style);
 </script>
+
+```
+
 </body>
 </html>

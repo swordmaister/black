@@ -1,313 +1,105 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ホーキング放射：ペンローズ図風SVGでみる非対称性</title>
+<meta charset="UTF-8">
+<title>Hawking Radiation Simulation</title>
 <style>
-  :root{
-    --bg:#0b0f14; --panel:#0f1722; --ink:#e6edf3; --muted:#9eb1c9;
-    --h:#000; --grid:#1a2740; --cone:#263954; --coneEdge:#3b567f;
-    --red:#ff6b6b; --blue:#6b9dff; --ring:#1e2a3e; --accent:#91e6ff;
+  body {
+    background: black;
+    color: white;
+    font-family: sans-serif;
+    text-align: center;
   }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0; color:var(--ink); background:radial-gradient(1200px 800px at 80% -20%, #152032 0%, var(--bg) 55%, #070a0f 100%);
-    font-family: ui-sans-serif, -apple-system, Segoe UI, Noto Sans JP, Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  #scene {
+    background: black;
+    border: 1px solid white;
+    margin-top: 10px;
   }
-  header{padding:14px 16px; border-bottom:1px solid #152033}
-  header h1{margin:0; font-size:18px}
-  header .sub{font-size:12px; color:var(--muted)}
-  main{display:grid; grid-template-columns:1.2fr 1fr; gap:14px; padding:14px}
-  .card{
-    background:linear-gradient(180deg,#0e1520 0%, var(--panel) 100%);
-    border:1px solid #172131; border-radius:12px; overflow:hidden; position:relative;
-    box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.02);
+  .bar {
+    height: 20px;
+    background: red;
+    transition: width 0.1s linear;
   }
-  .card h2{margin:0; padding:10px 12px; font-size:14px; border-bottom:1px solid #172131; color:#cfe7ff}
-  .stage{position:relative; height:min(70vh,620px); padding:8px}
-  svg{width:100%; height:100%; display:block; background:
-      radial-gradient(600px 400px at 25% 15%, #121a27 0%, #0e1623 40%, #0b1220 70%)}
-  .legend{
-    position:absolute; left:12px; top:12px; display:flex; gap:10px; align-items:center;
-    background:rgba(10,14,20,.65); color:var(--ink); padding:6px 8px; border:1px solid #1b2737;
-    border-radius:10px; backdrop-filter:blur(6px); font-size:12px
+  .bar-container {
+    width: 300px;
+    border: 1px solid white;
+    background: gray;
+    margin: 5px auto;
   }
-  .dot{width:10px;height:10px;border-radius:50%}
-  .dot.red{background:var(--red); box-shadow:0 0 10px #ff6b6b99}
-  .dot.blue{background:var(--blue); box-shadow:0 0 10px #6b9dff99}
-  .dot.black{background:#000}
-  .pill{font-size:11px; color:#a6c8ff; border:1px solid #203049; padding:2px 8px; border-radius:999px; margin-left:8px}
-  .controls{padding:10px 12px; display:grid; gap:8px; border-top:1px solid #172131}
-  .row{display:grid; grid-template-columns:120px 1fr auto; gap:8px; align-items:center}
-  input[type="range"]{width:100%}
-  button{
-    appearance:none; border:1px solid #1b2737; background:#0f1722; color:var(--ink);
-    padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:600;
-  }
-  button:hover{border-color:#2a3b54}
-  .note{padding:10px 12px; font-size:12px; color:var(--muted)}
-  .metrics{padding:10px 12px; display:grid; gap:8px}
-  .metric{font-size:13px; color:#cfe7ff}
-  @media (max-width:980px){ main{grid-template-columns:1fr} .stage{height:58vh} }
 </style>
 </head>
 <body>
-<header>
-  <h1>ホーキング放射の非対称性<span class="pill">正エネルギー（外向き）／負エネルギー（内向き）</span></h1>
-  <div class="sub">事象の地平面でペアが引き裂かれると、観測されるのは正エネルギー側のみ。負エネルギー側は内へ落ち、BHの全エネルギーを減らす。</div>
-</header>
 
-<main>
-  <section class="card">
-    <h2>ペンローズ図風アニメ（光円錐の傾きと粒子ペアの分離）</h2>
-    <div class="stage">
-      <div class="legend">
-        <span class="dot black"></span> 事象の地平面 H
-        <span class="dot red"></span> 正エネルギー（外へ） 
-        <span class="dot blue"></span> 負エネルギー（内へ）
-      </div>
-      <svg id="viz" viewBox="0 0 900 600" preserveAspectRatio="xMidYMid meet" aria-label="Penrose-like diagram">
-        <!-- グリッド -->
-        <g id="grid">
-          <defs>
-            <pattern id="gridp" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--grid)" stroke-width="1"/>
-            </pattern>
-          </defs>
-          <rect x="0" y="0" width="900" height="600" fill="url(#gridp)"/>
-        </g>
+<h2>ホーキング放射シミュレーション</h2>
+<p>赤い粒子＝正のエネルギー（外へ）／青い粒子＝負のエネルギー（内側へ）</p>
 
-        <!-- 事象の地平面 H（x = 320 付近） -->
-        <g id="horizon">
-          <rect x="318" y="0" width="4" height="600" fill="var(--h)"/>
-          <text x="330" y="24" fill="#cfe7ff" font-size="12">H（事象の地平面）</text>
-        </g>
+<!-- SVG表示領域 -->
+<svg id="scene" width="500" height="300">
+    <!-- 事象の地平面 -->
+    <circle id="bh" cx="150" cy="150" r="50" fill="none" stroke="white" stroke-width="2" />
+    <!-- 正のエネルギー粒子 -->
+    <circle id="positive" cx="200" cy="150" r="5" fill="red" />
+    <!-- 負のエネルギー粒子 -->
+    <circle id="negative" cx="100" cy="150" r="5" fill="blue" />
+</svg>
 
-        <!-- 光円錐：地平面に近づくと外向きに鋭く（脱出角が小） -->
-        <g id="cones"></g>
+<h3>ブラックホール質量</h3>
+<div class="bar-container">
+  <div id="mass-bar" class="bar"></div>
+</div>
+<p id="mass-label"></p>
 
-        <!-- 粒子ペア（赤＝外向き、青＝内向き） -->
-        <g id="pairs"></g>
-
-        <!-- 外縁の注記 -->
-        <text x="20" y="24" fill="#cfe7ff" font-size="12">時間 ↑</text>
-        <text x="820" y="24" fill="#cfe7ff" font-size="12">半径 r →（右が外側）</text>
-        <text x="60" y="580" fill="#9eb1c9" font-size="12">左：BH内部（情報は戻らない）</text>
-        <text x="560" y="580" fill="#9eb1c9" font-size="12">右：外部（無限遠で観測）</text>
-      </svg>
-    </div>
-    <div class="controls">
-      <div class="row">
-        <label>生成頻度（ペア/秒）</label>
-        <input type="range" min="0" max="1" step="0.01" value="0.45" id="rate">
-        <span id="rateOut">0.45</span>
-      </div>
-      <div class="row">
-        <label>外向き優先（非対称度）</label>
-        <input type="range" min="0" max="1" step="0.01" value="0.75" id="bias">
-        <span id="biasOut">0.75</span>
-      </div>
-      <div class="row" style="grid-template-columns:1fr 1fr 1fr;gap:8px">
-        <button id="toggle">⏸ 一時停止</button>
-        <button id="clear">↺ クリア</button>
-        <button id="burst">最終段階っぽく強化</button>
-      </div>
-      <div class="note">
-        地平面付近では光円錐が「立つ」ため、外へ脱出できる経路は**狭い扇形**に限られます。<br>
-        その結果、**外向き＝正エネルギー**が観測され、**内向き＝負エネルギー**はBHへ落ちてBHの全エネルギーを減らします。
-      </div>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>ポイント（観測とエネルギー符号）</h2>
-    <div class="metrics">
-      <div class="metric">● <b>観測可能性のバイアス</b>：無限遠から検出できるのは <b>正のエネルギー</b> をもつ外向き粒子のみ。負のエネルギーは内側で「BHの質量を減少させる寄与」として現れる。</div>
-      <div class="metric">● <b>境界条件の非対称性</b>：事象の地平面は「戻れない片方向の境界」。外へ出られる経路が制限されるため、長期的な平均でBHは質量を失う。</div>
-      <div class="metric">● <b>数理の裏付け</b>：ホーキング温度 <i>T ∝ 1/M</i>、放射パワー <i>P ∝ 1/M²</i>、質量進化 <i>dM/dt = −k/M²</i> → 小さくなるほど蒸発が加速。</div>
-    </div>
-  </section>
-</main>
+<h3>放射されたエネルギー</h3>
+<div class="bar-container">
+  <div id="energy-bar" class="bar" style="background: orange;"></div>
+</div>
+<p id="energy-label"></p>
 
 <script>
-(()=> {
-  const svg = document.getElementById('viz');
-  const gCones = document.getElementById('cones');
-  const gPairs = document.getElementById('pairs');
+let posX = 200; // 正エネ粒子の位置
+let negX = 100; // 負エネ粒子の位置
+let mass = 100; // ブラックホールの初期質量（任意単位）
+let energy = 0; // 放射されたエネルギー
 
-  const rateR = document.getElementById('rate');
-  const biasR = document.getElementById('bias');
-  const rateOut = document.getElementById('rateOut');
-  const biasOut = document.getElementById('biasOut');
-  const btnToggle = document.getElementById('toggle');
-  const btnClear  = document.getElementById('clear');
-  const btnBurst  = document.getElementById('burst');
+function resetParticles() {
+    posX = 200;
+    negX = 100;
+}
 
-  rateR.addEventListener('input', ()=> rateOut.textContent = (+rateR.value).toFixed(2));
-  biasR.addEventListener('input', ()=> biasOut.textContent = (+biasR.value).toFixed(2));
+function animate() {
+    posX += 2;   // 正のエネルギー粒子は外向き
+    negX -= 2;   // 負のエネルギー粒子は内向き
 
-  // 座標系
-  const W = 900, H = 600;
-  const XH = 320;                // 事象の地平面 x位置
-  const innerX = 40, outerX = 880;
+    document.getElementById("positive").setAttribute("cx", posX);
+    document.getElementById("negative").setAttribute("cx", negX);
 
-  // 光円錐の描画：地平面に近づくと外向き半角が小さくなる
-  function drawCones(){
-    gCones.innerHTML = '';
-    const rows = 9, cols = 8;
-    for (let i=0; i<rows; i++){
-      const y = 60 + i * ((H-120)/(rows-1));
-      for (let j=0; j<cols; j++){
-        const x = 120 + j * ((W-200)/(cols-1));
-        // 地平面からの距離で外向き半角を調整
-        const dx = Math.max(5, Math.abs(x - XH));
-        const base = 28;
-        const half = Math.max(6, base * Math.min(1.0, dx/240)); // 近いほど狭い
-        const up = y - 26, down = y + 26;
-
-        const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-        const d = [
-          `M ${x} ${y}`,
-          `L ${x - half} ${up}`,
-          `M ${x} ${y}`,
-          `L ${x + half} ${up}`,
-          `M ${x} ${y}`,
-          `L ${x - half} ${down}`,
-          `M ${x} ${y}`,
-          `L ${x + half} ${down}`
-        ].join(' ');
-        path.setAttribute('d', d);
-        path.setAttribute('stroke', 'var(--coneEdge)');
-        path.setAttribute('stroke-width', '1.4');
-        path.setAttribute('opacity', (0.45 + 0.35*Math.min(1, dx/260)).toString());
-        gCones.appendChild(path);
-
-        // うっすら塗り（外向き領域を示す）
-        const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
-        poly.setAttribute('points', `${x-half},${up} ${x+half},${up} ${x+half},${down} ${x-half},${down}`);
-        poly.setAttribute('fill','var(--cone)');
-        poly.setAttribute('opacity','0.18');
-        gCones.appendChild(poly);
-      }
+    // 粒子が画面外に行ったら質量減少を反映してリセット
+    if (posX > 500) {
+        energy += 1;
+        mass -= 1;
+        if (mass < 0) mass = 0;
+        updateBars();
+        resetParticles();
     }
-  }
-  drawCones();
 
-  // 粒子ペア
-  const pairs = [];
-  function spawnPair(){
-    // 地平面のごく外側で生成（r ≳ r_H）
-    const x0 = XH + 6 + Math.random()*26;
-    const y0 = 520 - Math.random()*420;
+    requestAnimationFrame(animate);
+}
 
-    // 非対称度：外へ出られる扇形が狭いため、外向き（正エネルギー）を優先
-    const bias = +biasR.value; // 0～1（1に近いほど強い）
-    const outwardAngle = (Math.random() < 0.5 ? -1 : 1) * (8 + 32*Math.random()); // 度
-    // 赤（正エネルギー）外向き：右上へ
-    const vxR = 40 + 50*Math.random();
-    const vyR = - (20 + 40*Math.random()) * (0.7 + 0.3*bias);
+function updateBars() {
+    let massPercent = mass;   // 100を最大とする%
+    let energyPercent = energy;
 
-    // 青（負エネルギー）内向き：左下へ（BH内部）
-    const vxB = - (28 + 46*Math.random());
-    const vyB = (18 + 38*Math.random());
+    document.getElementById("mass-bar").style.width = massPercent * 3 + "px";
+    document.getElementById("energy-bar").style.width = energyPercent * 3 + "px";
 
-    const life = 2.5 + Math.random()*1.2;
+    document.getElementById("mass-label").textContent = "質量: " + mass.toFixed(0);
+    document.getElementById("energy-label").textContent = "放射エネルギー: " + energy.toFixed(0);
+}
 
-    const grp = document.createElementNS('http://www.w3.org/2000/svg','g');
-
-    const red = document.createElementNS('http://www.w3.org/2000/svg','circle');
-    red.setAttribute('r','3.6');
-    red.setAttribute('fill','var(--red)');
-    red.setAttribute('filter','url(#)'); // no-op
-    grp.appendChild(red);
-
-    const blue = document.createElementNS('http://www.w3.org/2000/svg','circle');
-    blue.setAttribute('r','3.6');
-    blue.setAttribute('fill','var(--blue)');
-    grp.appendChild(blue);
-
-    gPairs.appendChild(grp);
-
-    pairs.push({
-      xR:x0, yR:y0, vxR, vyR,
-      xB:x0, yB:y0, vxB, vyB,
-      age:0, life, node:grp, seen:false
-    });
-  }
-
-  let running = true;
-  let last = performance.now();
-
-  function tick(now){
-    const dt = Math.min(0.05, (now-last)/1000);
-    last = now;
-
-    if (running){
-      // 生成レート（ペア/秒）
-      const rate = +rateR.value; // 0～1
-      if (Math.random() < rate * dt * 4){
-        spawnPair();
-      }
-
-      // 更新＆描画
-      for (let i=pairs.length-1; i>=0; --i){
-        const p = pairs[i];
-        p.age += dt;
-        // 速度に「外へ行きやすい」小さなドリフト（非対称性）を付与
-        p.vxR += 2.0*dt;                 // 赤は更に外へ
-        p.vxB += -1.0*dt;                // 青は更に内へ
-        // 位置更新
-        p.xR += p.vxR * dt; p.yR += p.vyR * dt;
-        p.xB += p.vxB * dt; p.yB += p.vyB * dt;
-
-        // 地平面内へ入った青はフェード（観測できない）
-        const fallen = p.xB <= XH;
-        const alphaB = fallen ? 0.08 : 1.0;
-
-        // 無限遠へ向かう赤は遠方で小さく（淡く）
-        const alphaR = Math.max(0.15, 1 - (p.xR - XH)/560);
-
-        // DOM 反映
-        const n = p.node;
-        let c0 = n.firstChild;     // red
-        let c1 = n.lastChild;      // blue
-        c0.setAttribute('cx', p.xR); c0.setAttribute('cy', p.yR);
-        c1.setAttribute('cx', p.xB); c1.setAttribute('cy', p.yB);
-        c0.setAttribute('opacity', alphaR.toFixed(3));
-        c1.setAttribute('opacity', alphaB.toFixed(3));
-
-        // 寿命・画面外で消去
-        const out = (p.xR>outerX || p.yR<-20 || p.yR>H+20);
-        if (p.age>p.life || out){
-          n.remove();
-          pairs.splice(i,1);
-        }
-      }
-    }
-    requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-
-  btnToggle.addEventListener('click', ()=>{
-    running = !running;
-    btnToggle.textContent = running ? "⏸ 一時停止" : "▶ 再開";
-  });
-  btnClear.addEventListener('click', ()=>{
-    pairs.forEach(p=>p.node.remove());
-    pairs.length = 0;
-  });
-  btnBurst.addEventListener('click', ()=>{
-    // 非対称度と生成頻度を一時的に上げ、終盤の「一方向性」を強調
-    biasR.value = Math.min(1, (+biasR.value)+0.15);
-    rateR.value = Math.min(1, (+rateR.value)+0.25);
-    biasOut.textContent = (+biasR.value).toFixed(2);
-    rateOut.textContent = (+rateR.value).toFixed(2);
-    // 連続生成
-    for(let i=0;i<8;i++) spawnPair();
-  });
-})();
+// 初期化
+updateBars();
+animate();
 </script>
+
 </body>
 </html>

@@ -207,22 +207,6 @@
             background: radial-gradient(circle, rgba(68, 255, 68, 0.1) 0%, transparent 70%);
         }
     
-        .gear-icon {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 60px;
-            height: 60px;
-            z-index: 5;
-            pointer-events: none;
-            transition: opacity 0.5s ease;
-        }
-    
-        .device.has-active-leds .gear-icon {
-            opacity: 0.1;
-        }
-    
         #rotation-button {
             position: fixed;
             bottom: 25px;
@@ -275,7 +259,6 @@
     <div class="device-container" style="transform: translate(-50%, -50%) rotate(277.5deg);">
         <div class="device" id="device">
             <div class="inner-glow"></div>
-            <img src="gear.png" alt="gear" class="gear-icon">
             <button class="start-button" id="startButton">
                 ●
             </button>
@@ -359,7 +342,7 @@
                     if (this.isPressing) {
                         this.start();
                     }
-                }, 7000); // 7秒に変更
+                }, 7000);
             }
     
             lightAllLEDs() {
@@ -371,7 +354,7 @@
     
             startPressAnimation() {
                 let currentDarkIndex = 0;
-                const pressTime = 7000; // 7秒に変更
+                const pressTime = 7000;
                 const rotations = 3;
                 const stepTime = pressTime / (rotations * 18);
                 
@@ -425,7 +408,7 @@
                 this.currentRotatingIndex = 0;
                 let rotationCount = 0;
                 const totalRotations = 3;
-                const rotationDuration = 4500; // プレス時間7秒から差し引いて調整
+                const rotationDuration = 4500;
                 const totalSteps = totalRotations * 18;
                 const stepDuration = rotationDuration / totalSteps;
                 

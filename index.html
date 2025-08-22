@@ -1,514 +1,586 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ホーキング放射シミュレーション：負エネルギーによるBH質量減少</title>
-<style>
-  :root{
-    --bg:#0b0f14;
-    --panel:#111823;
-    --ink:#e6edf3;
-    --muted:#a3b1c2;
-    --accent:#6ee7ff;
-    --accent2:#9bffb0;
-    --danger:#ff6b6b;
-    --ok:#7cf2b5;
-    --ring:#1f2a37;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0; color:var(--ink); background:radial-gradient(1200px 800px at 70% -10%, #142131 0%, var(--bg) 60%, #090c11 100%);
-    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Noto Sans JP, Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-  }
-  header{
-    padding:16px 20px; display:flex; align-items:center; gap:14px; border-bottom:1px solid #182230;
-    backdrop-filter:saturate(120%) blur(4px);
-  }
-  header h1{font-size:18px; margin:0; font-weight:700; letter-spacing:.02em}
-  header .sub{color:var(--muted); font-size:12px}
-  main{
-    display:grid; grid-template-columns:1.1fr 1fr; gap:16px; padding:16px; height:calc(100% - 66px);
-  }
-  .card{
-    background:linear-gradient(180deg, #0f1622 0%, var(--panel) 100%);
-    border:1px solid #172131; border-radius:14px; overflow:hidden; position:relative;
-    box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.02);
-  }
-  .card h2{margin:0; padding:12px 14px; font-size:14px; border-bottom:1px solid #172131; color:#cfe7ff}
-  .stage{position:relative; height: min(70vh, 620px);}
-  canvas{display:block; width:100%; height:100%}
-  .hud{
-    display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px;
-  }
-  .metric{
-    border:1px solid #1b2737; border-radius:12px; padding:10px 12px; background:#0f1722;
-  }
-  .metric .label{font-size:11px; color:var(--muted)}
-  .metric .value{font-size:18px; font-weight:700; margin-top:4px}
-  .metric .small{font-size:11px; color:#92a5bb}
-  .controls{
-    padding:12px; display:grid; gap:10px; border-top:1px solid #172131;
-  }
-  .row{display:grid; grid-template-columns:120px 1fr auto; align-items:center; gap:10px}
-  .row label{font-size:12px; color:var(--muted)}
-  input[type="range"]{width:100%}
-  button{
-    appearance:none; border:1px solid #1b2737; background:#0f1722; color:var(--ink);
-    padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:600;
-  }
-  button:hover{border-color:#2a3b54}
-  .pill{font-size:11px; color:#9ec7ff; border:1px solid #203049; padding:2px 8px; border-radius:999px; margin-left:8px}
-  .legend{
-    position:absolute; left:12px; top:12px; display:flex; gap:10px; align-items:center;
-    background:rgba(10,14,20,.6); padding:6px 8px; border:1px solid #1b2737; border-radius:10px; backdrop-filter:blur(6px);
-    font-size:12px;
-  }
-  .dot{width:10px;height:10px;border-radius:50%}
-  .dot.red{background:#ff6b6b; box-shadow:0 0 8px #ff6b6b99}
-  .dot.blue{background:#6b9dff; box-shadow:0 0 8px #6b9dff99}
-  .dot.black{background:#000}
-  .note{padding:10px 14px; font-size:12px; color:#9cb1c9}
-  .chart{height:260px}
-  @media (max-width: 980px){
-    main{grid-template-columns:1fr; height:auto}
-    .stage{height:58vh}
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>arcLedR2</title>
+    <style>
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: manipulation;
+            margin: 0;
+            padding: 60px;
+            background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+    
+        img {
+            -webkit-user-drag: none;
+            user-drag: none;
+        }
+    
+        .device-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.5s ease;
+            width: 400px;
+            height: 400px;
+            transform-origin: center center;
+        }
+    
+        .device {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 50px;
+            background: radial-gradient(circle, #1a1a1a, #000);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 30px rgba(0,0,0,0.8),
+                inset 0 0 20px rgba(255,255,255,0.1),
+                0 10px 30px rgba(0,0,0,0.6);
+            border: 3px solid #333;
+        }
+    
+        .led {
+            position: absolute;
+            width: 16px;
+            height: 25px;
+            border-radius: 3px;
+            background: transparent;
+            border: none;
+            transition: all 0.15s ease;
+            transform-origin: center center;
+            opacity: 0;
+        }
+        
+        .led::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -2px;
+            width: 20px;
+            height: 35px;
+            border-radius: 4px;
+            background: transparent;
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+    
+        .led::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 1px;
+            width: 14px;
+            height: 21px;
+            border-radius: 2px;
+            background: transparent;
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+    
+        .led.active {
+            background: currentColor;
+            border: 1px solid currentColor;
+            opacity: 1;
+            box-shadow: 
+                0 0 8px currentColor,
+                0 0 16px currentColor,
+                inset 0 0 4px rgba(255,255,255,0.4);
+            transition: all 0.1s ease;
+        }
+    
+        .led.active::before {
+            background: currentColor;
+            opacity: 0.2;
+            box-shadow: 
+                0 0 12px currentColor,
+                0 0 20px currentColor;
+            transition: all 0.1s ease;
+        }
+    
+        .led.active::after {
+            background: currentColor;
+            opacity: 1;
+            box-shadow: 
+                0 0 6px currentColor,
+                inset 0 0 3px rgba(255,255,255,0.6);
+            transition: all 0.1s ease;
+        }
+    
+        .led.dim {
+            background: #222;
+            border: 1px solid #333;
+            opacity: 0.15;
+            box-shadow: none;
+            transition: all 0.1s ease;
+        }
+    
+        .led.dim::before {
+            background: #222;
+            opacity: 0.1;
+            box-shadow: none;
+        }
+    
+        .led.dim::after {
+            background: #222;
+            opacity: 0.1;
+            box-shadow: none;
+        }
+    
+        .led.red { color: #ff4444; }
+        .led.orange { color: #ff8800; }
+        .led.yellow { color: #ffdd00; }
+        .led.green { color: #44ff44; }
+        .led.blue { color: #4488ff; }
+        .led.purple { color: #aa44ff; }
+    
+        .start-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #2a2a2a, #111);
+            border: 4px solid #444;
+            color: #fff;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 8px 20px rgba(0,0,0,0.7),
+                inset 0 3px 8px rgba(255,255,255,0.15),
+                0 0 0 2px rgba(0,255,136,0.2);
+            user-select: none;
+            backdrop-filter: blur(5px);
+        }
+    
+        .start-button:hover {
+            background: linear-gradient(145deg, #333, #1a1a1a);
+            box-shadow: 
+                0 6px 15px rgba(0,0,0,0.8),
+                inset 0 3px 8px rgba(255,255,255,0.2),
+                0 0 0 2px rgba(0,255,136,0.4);
+            transform: translate(-50%,-50%) translateX(3px);
+        }
+    
+        .start-button:active {
+            transform: translate(-50%,-50%) scale(0.95);
+        }
+    
+        .start-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+    
+        .inner-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 140px;
+            height: 140px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: radial-gradient(circle, transparent 60%, rgba(0,0,0,0.3) 100%);
+            pointer-events: none;
+            transition: all 0.5s ease;
+        }
+    
+        .device.has-active-leds .inner-glow {
+            background: radial-gradient(circle, rgba(68, 255, 68, 0.1) 0%, transparent 70%);
+        }
+    
+        .gear-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            z-index: 5;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+    
+        .device.has-active-leds .gear-icon {
+            opacity: 0.1;
+        }
+    
+        #rotation-button {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+    
+        #rotation-button:hover {
+            background: rgba(255, 255, 255, 0.5);
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: scale(1.2);
+        }
+    
+        #rotation-button:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.7);
+        }
+    
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+    
+        .led.blinking {
+            animation: blink 0.6s ease-in-out infinite;
+        }
+    
+        .mode-switch { display: none; }
+        .mode-indicator { display: none; }
+        .press-indicator { display: none; }
+        .progress-ring { display: none; }
+        .progress-ring-bg { display: none; }
+        .progress-ring-fill { display: none; }
+        #rotation-indicator { display: none; }
+        .progress-info { display: none; }
+        .mode-labels { display: none; }
+        .reset-button { display: none; }
+        .press-text { display: none; }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>ホーキング放射シミュレーション</h1>
-    <div class="sub">負エネルギーの取り込み ⇒ ブラックホール質量が減少</div>
-    <span class="pill">dM/dt = −k / M²</span>
-  </header>
-  <main>
-    <section class="card">
-      <h2>視覚シーン（事象の地平面と粒子対）</h2>
-      <div class="stage">
-        <div class="legend">
-          <span class="dot black"></span> 事象の地平面
-          <span class="dot red"></span> 正エネルギー（外へ脱出 → 放射）
-          <span class="dot blue"></span> 負エネルギー（内へ落下 → BH質量を減少）
+    <div class="device-container" style="transform: translate(-50%, -50%) rotate(277.5deg);">
+        <div class="device" id="device">
+            <div class="inner-glow"></div>
+            <img src="gear.png" alt="gear" class="gear-icon">
+            <button class="start-button" id="startButton">
+                ●
+            </button>
         </div>
-        <canvas id="scene"></canvas>
-      </div>
-      <div class="hud">
-        <div class="metric">
-          <div class="label">質量 M (任意単位)</div>
-          <div class="value" id="massVal">—</div>
-          <div class="small" id="massNote">初期値</div>
-        </div>
-        <div class="metric">
-          <div class="label">ホーキング温度 T ∝ 1/M</div>
-          <div class="value" id="tempVal">—</div>
-          <div class="small">小さいほど高温 → 放射加速</div>
-        </div>
-        <div class="metric">
-          <div class="label">放射パワー P ∝ 1/M²</div>
-          <div class="value" id="powerVal">—</div>
-          <div class="small">P ≈ k / M²（モデル）</div>
-        </div>
-        <div class="metric">
-          <div class="label">経過時間 t（任意単位）</div>
-          <div class="value" id="timeVal">0.00</div>
-          <div class="small" id="etaVal">推定寿命 ~ —</div>
-        </div>
-      </div>
-      <div class="controls">
-        <div class="row">
-          <label for="mass0">初期質量 M₀</label>
-          <input type="range" id="mass0" min="1" max="200" step="1" value="80" />
-          <span id="mass0Out">80</span>
-        </div>
-        <div class="row">
-          <label for="speed">速度（時間倍率）</label>
-          <input type="range" id="speed" min="0.2" max="4" step="0.1" value="1.0" />
-          <span id="speedOut">1.0×</span>
-        </div>
-        <div class="row" style="grid-template-columns:1fr 1fr 1fr; gap:8px">
-          <button id="toggle">⏸ 一時停止</button>
-          <button id="reset">↺ リセット</button>
-          <button id="burst">最終段階を早送り</button>
-        </div>
-        <div class="note">注：このモデルは本質（負エネルギーの取り込みと <strong>dM/dt = −k/M²</strong>）を説明するための簡約版です。単位は任意スケールに正規化しています。</div>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>質量の時間発展 M(t)</h2>
-      <div class="chart">
-        <canvas id="chart"></canvas>
-      </div>
-      <div class="note">
-        理論解（定数 <em>k</em> 一定）では、蒸発時間は <strong>t<sub>evap</sub> ∝ M₀³</strong>。<br/>
-        小さいほど温度 <strong>T ∝ 1/M</strong> が高く、放射パワー <strong>P ∝ 1/M²</strong> が大きくなり、終盤で急減速ではなく<strong>急加速</strong>して消滅します。
-      </div>
-    </section>
-  </main>
-
-<script>
-(()=> {
-  // ====== 物理モデル（簡約） ======
-  // dM/dt = -k / M^2  （k>0）
-  // T ~ 1/M,  P ~ k / M^2
-  const k = 120;                 // 放射係数（視覚的わかりやすさ優先の任意値）
-  const Mmin = 0.8;              // これを下回ると「最終蒸発」イベントに移行
-  const dtSim = 1/60;            // 1フレームの基準Δt（物理時間単位）
-
-  // 理論寿命（比例）： t_evap = M0^3 / (3k) * C（ここでは係数調整）
-  const evapTime = (M0)=> (M0**3)/(3*k) * 100; // スケーリング済みの擬似寿命
-
-  // ====== DOM ======
-  const cvsScene = document.getElementById('scene');
-  const cvsChart = document.getElementById('chart');
-  const massVal  = document.getElementById('massVal');
-  const massNote = document.getElementById('massNote');
-  const tempVal  = document.getElementById('tempVal');
-  const powerVal = document.getElementById('powerVal');
-  const timeVal  = document.getElementById('timeVal');
-  const etaVal   = document.getElementById('etaVal');
-
-  const mass0R   = document.getElementById('mass0');
-  const mass0Out = document.getElementById('mass0Out');
-  const speedR   = document.getElementById('speed');
-  const speedOut = document.getElementById('speedOut');
-
-  const btnToggle= document.getElementById('toggle');
-  const btnReset = document.getElementById('reset');
-  const btnBurst = document.getElementById('burst');
-
-  // ====== シミュレーション状態 ======
-  let M0 = parseFloat(mass0R.value);
-  let M  = M0;
-  let t  = 0;
-  let running = true;
-  let timeScale = parseFloat(speedR.value);
-  let tEvapEst = evapTime(M0);
-  let particles = []; // 視覚化用の粒子
-  const chartData = []; // {t, M}
-  const chartMaxPoints = 600;
-
-  // ====== レイアウト ======
-  const resize = ()=>{
-    // Scene canvas: device pixel ratio 対応
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const rectS = cvsScene.getBoundingClientRect();
-    cvsScene.width = Math.floor(rectS.width * dpr);
-    cvsScene.height= Math.floor(rectS.height* dpr);
-
-    // Chart canvas
-    const rectC = cvsChart.getBoundingClientRect();
-    cvsChart.width = Math.floor(rectC.width * dpr);
-    cvsChart.height= Math.floor(rectC.height* dpr);
-  };
-  window.addEventListener('resize', resize, {passive:true});
-  resize();
-
-  // ====== 視覚：粒子クラス ======
-  class Pair {
-    constructor(cx, cy, rEvent, theta, bhR){
-      // イベント発生位置（地平面のわずか外側）
-      this.x = cx + Math.cos(theta) * (rEvent);
-      this.y = cy + Math.sin(theta) * (rEvent);
-      const speed = 0.6 + Math.random()*0.8;
-
-      // 正エネルギー（赤）：外向き
-      const outAngle = theta + (Math.random()*0.4 - 0.2);
-      this.red = {
-        x:this.x, y:this.y,
-        vx:Math.cos(outAngle)*speed, vy:Math.sin(outAngle)*speed,
-        life: 2.2 + Math.random()*1.0, age:0
-      };
-
-      // 負エネルギー（青）：内向き（BHへ）
-      const inAngle = theta + Math.PI + (Math.random()*0.3 - 0.15);
-      this.blue = {
-        x:this.x, y:this.y,
-        vx:Math.cos(inAngle)*speed, vy:Math.sin(inAngle)*speed,
-        life: 1.6 + Math.random()*0.8, age:0
-      };
-
-      this.absorbed = false;
-      this.bhR = bhR;
-    }
-    step(dt){
-      const adv = (p)=>{
-        p.x += p.vx * dt * 60;
-        p.y += p.vy * dt * 60;
-        p.age += dt;
-      };
-      adv(this.red);
-      adv(this.blue);
-    }
-  }
-
-  // ====== 数値更新 ======
-  function integrate(dt){
-    // dM/dt = -k/M^2
-    const dM = -(k * dt) / (M*M);
-    M = Math.max(M + dM, 0);
-    t += dt;
-
-    // 粒子生成（確率はパワーに比例）
-    const spawnRate = Math.min(6, 0.15 + 6 * (k/(M*M)) / (k/(M0*M0))); // 初期に対する相対Pでスケーリング
-    if (Math.random() < spawnRate * dt){
-      spawnPair();
-    }
-
-    // 粒子の「意味づけ」：青がBHに吸収されるほど質量を減らす、という因果を視覚で示す
-    // ただし数式上の減少は上のdMで既に反映済み（視覚と数式を同期）
-  }
-
-  // ====== 粒子生成 ======
-  function spawnPair(){
-    const ctx = cvsScene.getContext('2d');
-    const W = cvsScene.width, H = cvsScene.height;
-    const cx = W/2, cy = H/2;
-    const bhR = Math.max(30,  Math.min(W,H) * 0.18); // 絵としてのBH半径（見やすさ優先）
-    const rEvent = bhR * (1.02 + Math.random()*0.08); // 地平面のすぐ外側
-    const theta = Math.random()*Math.PI*2;
-    particles.push(new Pair(cx,cy,rEvent,theta,bhR));
-  }
-
-  // ====== 描画：シーン ======
-  function drawScene(){
-    const ctx = cvsScene.getContext('2d');
-    const W = cvsScene.width, H = cvsScene.height;
-    ctx.clearRect(0,0,W,H);
-
-    const cx = W/2, cy = H/2;
-    // 見かけの地平面半径（質量に比例させて少し変える）
-    const baseR = Math.max(30,  Math.min(W,H) * 0.18);
-    const bhR = baseR * (0.4 + 0.6 * (M / M0)); // Mが減ると半径もやや縮む演出
-
-    // 背景の重力レンズ風グラデ
-    const rad = ctx.createRadialGradient(cx, cy, bhR*0.4, cx, cy, bhR*3.2);
-    rad.addColorStop(0, '#000000');
-    rad.addColorStop(0.5, '#05070c');
-    rad.addColorStop(1, '#0b1320');
-    ctx.fillStyle = rad;
-    ctx.fillRect(0,0,W,H);
-
-    // 地平面（黒円＋薄いリング）
-    ctx.beginPath();
-    ctx.arc(cx, cy, bhR, 0, Math.PI*2);
-    ctx.fillStyle = '#000';
-    ctx.fill();
-    ctx.lineWidth = Math.max(2, bhR*0.03);
-    ctx.strokeStyle = '#1f2a37';
-    ctx.stroke();
-
-    // 粒子
-    const dt = lastFrameDtSec;
-    const toRemove = [];
-    particles.forEach((pair, i)=>{
-      pair.step(dt);
-
-      // 青：BHに吸収されたらフェードアウト
-      const dx = pair.blue.x - cx, dy = pair.blue.y - cy;
-      const r2 = dx*dx + dy*dy;
-      if (!pair.absorbed && r2 <= (bhR*bhR)){
-        pair.absorbed = true;
-      }
-
-      // 描画（発光ドット）
-      const drawDot = (p, color, glow)=>{
-        const r = 4;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, r, 0, Math.PI*2);
-        ctx.fillStyle = color;
-        ctx.shadowBlur = glow; ctx.shadowColor = color;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      };
-
-      // 青（負エネルギー、内向き）
-      if (!pair.absorbed && pair.blue.age < pair.blue.life){
-        drawDot(pair.blue, '#6b9dff', 14);
-      }
-
-      // 赤（正エネルギー、外向き）
-      if (pair.red.age < pair.red.life){
-        drawDot(pair.red, '#ff6b6b', 14);
-      }
-
-      // 消去判定
-      const outOfBounds = (p)=> (p.x< -20||p.x>W+20||p.y< -20||p.y>H+20||p.age>p.life);
-      if (outOfBounds(pair.red) && (pair.absorbed || outOfBounds(pair.blue))){
-        toRemove.push(i);
-      }
-    });
-    // 後ろから消す
-    for(let j=toRemove.length-1;j>=0;--j){
-      particles.splice(toRemove[j],1);
-    }
-
-    // 最終蒸発演出
-    if (M <= Mmin){
-      const pulse = 0.5 + 0.5*Math.sin(perf*0.02);
-      ctx.beginPath();
-      ctx.arc(cx, cy, bhR*(1+0.12*pulse), 0, Math.PI*2);
-      ctx.strokeStyle = `rgba(255,235,170,${0.25+0.25*pulse})`;
-      ctx.lineWidth = 6;
-      ctx.stroke();
-
-      // ラスト閃光
-      if (!finalFlashDone){
-        finalFlashOpacity = Math.min(1, finalFlashOpacity + 0.06);
-        ctx.fillStyle = `rgba(255,255,220,${finalFlashOpacity})`;
-        ctx.fillRect(0,0,W,H);
-      }
-    }
-  }
-
-  // ====== 描画：チャート（M(t)) ======
-  function drawChart(){
-    const ctx = cvsChart.getContext('2d');
-    const W = cvsChart.width, H = cvsChart.height;
-    ctx.clearRect(0,0,W,H);
-
-    // 枠
-    ctx.fillStyle = '#0c141f';
-    ctx.fillRect(0,0,W,H);
-    ctx.strokeStyle = '#1b2737';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(1,1,W-2,H-2);
-
-    if (chartData.length < 2) return;
-
-    // 軸スケール
-    const tMax = chartData[chartData.length-1].t;
-    const mMax = M0;
-    const mMin = Math.max(0, Math.min(...chartData.map(p=>p.M)));
-
-    // 軸目盛（簡易）
-    ctx.strokeStyle = '#152032';
-    ctx.lineWidth = 1;
-    const gridN = 5;
-    for (let i=1;i<gridN;i++){
-      const y = i*H/gridN;
-      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
-    }
-
-    // 折れ線
-    ctx.beginPath();
-    for(let i=0;i<chartData.length;i++){
-      const p = chartData[i];
-      const x = (p.t / tMax) * (W-20) + 10;
-      const y = (1 - (p.M - mMin) / (mMax - mMin + 1e-6)) * (H-20) + 10;
-      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    }
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#6ee7ff';
-    ctx.shadowBlur = 12; ctx.shadowColor = '#6ee7ff';
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // 現在値点
-    const last = chartData[chartData.length-1];
-    const x = (last.t / tMax) * (W-20) + 10;
-    const y = (1 - (last.M - mMin) / (mMax - mMin + 1e-6)) * (H-20) + 10;
-    ctx.beginPath();
-    ctx.arc(x,y,5,0,Math.PI*2);
-    ctx.fillStyle = '#9bffb0';
-    ctx.fill();
-  }
-
-  // ====== UI更新 ======
-  function updateHUD(){
-    massVal.textContent = M.toFixed(2);
-    massNote.textContent = M <= Mmin ? "最終蒸発" : `M₀ = ${M0.toFixed(0)}（任意単位）`;
-    tempVal.textContent = (1/Math.max(M,1e-3)).toFixed(3) + " (∝1/M)";
-    powerVal.textContent= (k/(M*M)).toFixed(3) + " (∝1/M²)";
-    timeVal.textContent = t.toFixed(2);
-    const remain = Math.max(0, tEvapEst - t);
-    etaVal.textContent  = M<=Mmin ? "蒸発完了" : `推定寿命 ~ ${remain.toFixed(1)}`;
-  }
-
-  // ====== チャートデータ更新 ======
-  function pushChart(){
-    chartData.push({t, M});
-    if (chartData.length > chartMaxPoints) chartData.shift();
-  }
-
-  // ====== ループ ======
-  let last = performance.now();
-  let perf = 0;
-  let lastFrameDtSec = dtSim;
-  let finalFlashOpacity = 0;
-  let finalFlashDone = false;
-
-  function tick(now){
-    if (running){
-      const rawDt = (now - last)/1000;
-      const dt = Math.min(0.1, rawDt * timeScale); // 安定化
-      lastFrameDtSec = dtSim * timeScale; // 視覚ステップ用
-      // 数値積分は一定刻みの方が安定するので、細かく刻む
-      let acc = dt;
-      const step = 1/240;
-      while (acc > 1e-6){
-        const h = Math.min(step, acc);
-        integrate(h);
-        acc -= h;
-      }
-
-      // 記録＆更新
-      if (chartData.length===0 || t - chartData[chartData.length-1].t > 0.03){
-        pushChart();
-      }
-      updateHUD();
-
-      // 終了条件
-      if (M <= Mmin && !finalFlashDone){
-        // ラスト強制閃光後に停止
-        if (finalFlashOpacity >= 1){
-          finalFlashDone = true;
-          running = false;
-          btnToggle.textContent = "▶ 再開";
+    </div>
+    
+    <div id="rotation-button" onclick="rotateScreen()"></div>
+    
+    <script>
+        class LEDSequence {
+            constructor() {
+                this.colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
+                this.colorNames = ['赤', 'オレンジ', '黄色', '緑', '青', '紫'];
+                this.leds = [];
+                this.currentRotatingIndex = 0;
+                this.isRunning = false;
+                this.isPressing = false;
+                this.isFinished = false;
+                this.autoStartTimer = null;
+                this.pressAnimationInterval = null;
+                this.rotationInterval = null;
+                this.finalInterval = null;
+                this.startButton = document.getElementById('startButton');
+                this.device = document.getElementById('device');
+                this.init();
+            }
+    
+            init() {
+                this.createLEDs();
+                this.startButton.addEventListener('mousedown', (e) => this.startPress(e));
+                this.startButton.addEventListener('mouseup', (e) => this.endPress(e));
+                this.startButton.addEventListener('mouseleave', (e) => this.endPress(e));
+                this.startButton.addEventListener('touchstart', (e) => this.startPress(e));
+                this.startButton.addEventListener('touchend', (e) => this.endPress(e));
+                this.startButton.addEventListener('touchcancel', (e) => this.endPress(e));
+            }
+    
+            createLEDs() {
+                const radius = 115;
+                const centerX = 150;
+                const centerY = 150;
+                const startAngle = 225;
+                const totalAngle = 270;
+                const angleStep = totalAngle / 18;
+                
+                for (let i = 0; i < 18; i++) {
+                    const angle = startAngle + (i * angleStep);
+                    const colorIndex = Math.floor(i / 3);
+                    const color = this.colors[colorIndex];
+                    const led = document.createElement('div');
+                    led.className = `led ${color}`;
+                    const radians = (angle * Math.PI) / 180;
+                    const x = centerX + radius * Math.cos(radians) - 8;
+                    const y = centerY + radius * Math.sin(radians) - 12;
+                    led.style.left = x + 'px';
+                    led.style.top = y + 'px';
+                    const rotation = angle + 180;
+                    led.style.transform = `rotate(${rotation}deg)`;
+                    this.device.appendChild(led);
+                    this.leds.push(led);
+                }
+            }
+    
+            startPress(e) {
+                e.preventDefault();
+                
+                if (this.isRunning || this.isFinished) {
+                    this.reset();
+                    return;
+                }
+                
+                if (this.isPressing) return;
+                
+                this.isPressing = true;
+                this.startButton.style.background = 'linear-gradient(145deg, #00aa66, #006644)';
+                
+                this.lightAllLEDs();
+                this.startPressAnimation();
+                
+                this.autoStartTimer = setTimeout(() => {
+                    if (this.isPressing) {
+                        this.start();
+                    }
+                }, 7000); // 7秒に変更
+            }
+    
+            lightAllLEDs() {
+                this.leds.forEach(led => {
+                    led.classList.add('active');
+                });
+                this.device.classList.add('has-active-leds');
+            }
+    
+            startPressAnimation() {
+                let currentDarkIndex = 0;
+                const pressTime = 7000; // 7秒に変更
+                const rotations = 3;
+                const stepTime = pressTime / (rotations * 18);
+                
+                this.pressAnimationInterval = setInterval(() => {
+                    this.leds.forEach(led => {
+                        led.classList.remove('dim');
+                        led.classList.add('active');
+                    });
+                    
+                    this.leds[currentDarkIndex].classList.remove('active');
+                    this.leds[currentDarkIndex].classList.add('dim');
+                    
+                    currentDarkIndex = (currentDarkIndex + 1) % 18;
+                }, stepTime);
+            }
+    
+            endPress(e) {
+                e.preventDefault();
+                if (!this.isPressing) return;
+                
+                if (!this.isRunning) {
+                    this.reset();
+                } else {
+                    this.isPressing = false;
+                    this.startButton.style.background = '';
+                }
+            }
+    
+            start() {
+                if (this.isRunning) return;
+                
+                this.isRunning = true;
+                this.isPressing = false;
+                this.startButton.disabled = true;
+                this.startButton.style.background = '';
+                
+                if (this.pressAnimationInterval) {
+                    clearInterval(this.pressAnimationInterval);
+                    this.pressAnimationInterval = null;
+                }
+                
+                if (this.autoStartTimer) {
+                    clearTimeout(this.autoStartTimer);
+                    this.autoStartTimer = null;
+                }
+                
+                this.startSpinSequence();
+            }
+    
+            startSpinSequence() {
+                this.currentRotatingIndex = 0;
+                let rotationCount = 0;
+                const totalRotations = 3;
+                const rotationDuration = 4500; // プレス時間7秒から差し引いて調整
+                const totalSteps = totalRotations * 18;
+                const stepDuration = rotationDuration / totalSteps;
+                
+                this.leds.forEach(led => {
+                    led.classList.remove('dim');
+                    led.classList.add('active');
+                });
+                
+                this.rotationInterval = setInterval(() => {
+                    const prevIndex = (this.currentRotatingIndex === 0 && rotationCount > 0) ? 17 : this.currentRotatingIndex - 1;
+                    if(prevIndex >= 0) {
+                         this.leds[prevIndex].classList.remove('dim');
+                         this.leds[prevIndex].classList.add('active');
+                    }
+                    
+                    this.leds[this.currentRotatingIndex].classList.remove('active');
+                    this.leds[this.currentRotatingIndex].classList.add('dim');
+                    
+                    this.currentRotatingIndex++;
+                    
+                    if (this.currentRotatingIndex >= 18) {
+                        this.currentRotatingIndex = 0;
+                        rotationCount++;
+                        
+                        if (rotationCount >= totalRotations) {
+                            clearInterval(this.rotationInterval);
+                            this.rotationInterval = null;
+                            this.leds[17].classList.remove('dim');
+                            this.leds[17].classList.add('active');
+                            this.finalSpin();
+                        }
+                    }
+                }, stepDuration);
+            }
+    
+            finalSpin() {
+                const randomTarget = Math.floor(Math.random() * 18);
+                let currentIndex = 0;
+                let stepCount = 0;
+                const totalSteps = 18 * 3 + randomTarget + 1;
+                const stepDuration = 50;
+    
+                this.leds.forEach(led => {
+                    led.classList.remove('dim');
+                    led.classList.add('active');
+                });
+                
+                this.finalInterval = setInterval(() => {
+                    if (stepCount > 0) {
+                        const prevIndex = (currentIndex === 0) ? 17 : currentIndex - 1;
+                        this.leds[prevIndex].classList.remove('dim');
+                        this.leds[prevIndex].classList.add('active');
+                    }
+                    
+                    this.leds[currentIndex].classList.remove('active');
+                    this.leds[currentIndex].classList.add('dim');
+                    
+                    stepCount++;
+                    
+                    if (stepCount >= totalSteps) {
+                        clearInterval(this.finalInterval);
+                        this.finalInterval = null;
+                        this.leds[currentIndex].classList.remove('dim');
+                        this.leds[currentIndex].classList.add('active');
+                        this.showFinalResult(currentIndex);
+                    } else {
+                        currentIndex = (currentIndex + 1) % 18;
+                    }
+                }, stepDuration);
+            }
+    
+            showFinalResult(selectedIndex) {
+                this.leds.forEach(led => {
+                    led.classList.remove('dim');
+                    led.classList.add('active');
+                });
+                
+                this.leds[selectedIndex].classList.add('blinking');
+                
+                this.isRunning = false;
+                this.isFinished = true;
+                this.startButton.disabled = false;
+            }
+    
+            reset() {
+                this.isPressing = false;
+                this.isRunning = false;
+                this.isFinished = false;
+                this.startButton.disabled = false;
+                this.startButton.style.background = '';
+                this.device.classList.remove('has-active-leds');
+                
+                if (this.pressAnimationInterval) {
+                    clearInterval(this.pressAnimationInterval);
+                    this.pressAnimationInterval = null;
+                }
+                
+                if (this.autoStartTimer) {
+                    clearTimeout(this.autoStartTimer);
+                    this.autoStartTimer = null;
+                }
+    
+                if (this.rotationInterval) {
+                    clearInterval(this.rotationInterval);
+                    this.rotationInterval = null;
+                }
+                if (this.finalInterval) {
+                    clearInterval(this.finalInterval);
+                    this.finalInterval = null;
+                }
+                
+                this.leds.forEach(led => {
+                    led.classList.remove('active', 'dim', 'blinking');
+                    led.style.opacity = '1';
+                });
+            }
         }
-      }
-    }
-    perf = now;
-    drawScene();
-    drawChart();
-    last = now;
-    requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-
-  // ====== イベント ======
-  mass0R.addEventListener('input', e=>{
-    M0 = parseFloat(e.target.value);
-    mass0Out.textContent = M0.toFixed(0);
-  });
-  speedR.addEventListener('input', e=>{
-    timeScale = parseFloat(e.target.value);
-    speedOut.textContent = `${timeScale.toFixed(1)}×`;
-  });
-  btnToggle.addEventListener('click', ()=>{
-    running = !running;
-    btnToggle.textContent = running ? "⏸ 一時停止" : "▶ 再開";
-  });
-  btnReset.addEventListener('click', ()=>{
-    M = M0;
-    t = 0;
-    tEvapEst = evapTime(M0);
-    particles = [];
-    chartData.length = 0;
-    finalFlashOpacity = 0;
-    finalFlashDone = false;
-    running = true;
-    btnToggle.textContent = "⏸ 一時停止";
-    updateHUD();
-  });
-  btnBurst.addEventListener('click', ()=>{
-    // 現在のMを急速に小さくして、終盤の加速を体感
-    M = Math.max(M * 0.35, Mmin*1.8);
-  });
-
-})();
-</script>
+    
+        let deviceRotation = 277.5;
+    
+        function rotateScreen() {
+            deviceRotation += 45;
+            
+            const deviceContainer = document.querySelector('.device-container');
+            deviceContainer.style.transform = `translate(-50%, -50%) rotate(${deviceRotation}deg)`;
+            
+            const rotationButton = document.getElementById('rotation-button');
+            rotationButton.style.background = 'rgba(255, 255, 255, 0.8)';
+            rotationButton.style.borderColor = 'rgba(255, 255, 255, 0.9)';
+            rotationButton.style.transform = 'scale(1.3)';
+            
+            setTimeout(() => {
+                rotationButton.style.background = 'rgba(255, 255, 255, 0.3)';
+                rotationButton.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+                rotationButton.style.transform = 'scale(1)';
+            }, 200);
+        }
+    
+        document.addEventListener('keydown', function(event) {
+            switch(event.key.toLowerCase()) {
+                case ' ':
+                    event.preventDefault();
+                    rotateScreen();
+                    break;
+                case 'escape':
+                    if (window.ledSequence) {
+                        window.ledSequence.reset();
+                    }
+                    break;
+            }
+        });
+    
+        window.addEventListener('DOMContentLoaded', () => {
+            window.ledSequence = new LEDSequence();
+        });
+    </script>
 </body>
 </html>
